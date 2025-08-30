@@ -1,0 +1,9 @@
+[workspace]
+resolver = "3"
+members = [
+    "web_server",
+    "app_server", 
+    "libs/http_parser"
+]
+
+[workspace.dependencies]
