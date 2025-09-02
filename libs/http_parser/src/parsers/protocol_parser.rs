@@ -35,3 +35,23 @@ impl FromStr for Protocol {
         return Ok(protocol);
     }
 }
+
+/// Implementação do trait ToString para Protocol
+/// Transforma um Protocol em String
+impl ToString for Protocol {
+    fn to_string(&self) -> String {
+
+        let mut temp_str: String = "HTTP/".to_string();
+
+        temp_str.push_str(
+match self {
+            Protocol::Http09 => "0.9",
+            Protocol::Http10 => "1.0",
+            Protocol::Http11 => "1.1",
+            Protocol::Http2 => "2",
+            Protocol::Http3 => "3",
+        });
+
+        return temp_str;
+    }
+}

@@ -3,7 +3,7 @@ use std::str::FromStr;
 use crate::errors::ParseErr;
 
 /// Enum com os diferentes métodos que uma request HTTP pode ter
-//  Como no protocolo, aqui só aceitaremos GET, mas acredito que
+//  Como no Methodo, aqui só aceitaremos GET, mas acredito que
 //  ajudaria muito em projetos maiores
 #[derive(Debug, PartialEq, Eq)]
 pub enum Method {
@@ -18,8 +18,8 @@ pub enum Method {
     CONNECT
 }
 
-/// Implementação do trait FromStr para Protocol
-/// Transforma uma &str em um Protocol
+/// Implementação do trait FromStr para Method
+/// Transforma uma &str em um Method
 impl FromStr for Method{
     type Err = ParseErr;
 
@@ -28,7 +28,8 @@ impl FromStr for Method{
         use Method::*;
 
         let method = match s {
-            "GET" => CONNECT,
+            "GET" => GET,
+            "HEAD" => HEAD,
             "OPTIONS" => OPTIONS,
             "TRACE" => TRACE,
             "PUT" => PUT,
@@ -36,9 +37,29 @@ impl FromStr for Method{
             "POST" => POST,
             "PATCH" => PATCH,
             "CONNECT" => CONNECT,
-            met => return Err(ParseErr::BadMethod(format!("\"{}\"", met))) 
+            _ => return Err(ParseErr::BadMethod(format!("\"{}\"", s))) 
         };
 
         return Ok(method);
+    }
+}
+
+/// Implementação do trait ToString para Method
+/// Transforma um Method em String
+impl ToString for Method {
+    fn to_string(&self) -> String {
+        use Method::*;
+
+        return match self {
+            GET => "GET",
+            HEAD => "HEAD",
+            OPTIONS => "OPTIONS",
+            TRACE => "TRACE",
+            PUT => "PUT",
+            DELETE => "DELETE",
+            POST => "POST",
+            PATCH => "PATCH",
+            CONNECT => "CONNECT",
+        }.to_string();
     }
 }
