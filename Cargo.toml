@@ -3,7 +3,11 @@ resolver = "3"
 members = [
     "web_server",
     "app_server", 
-    "libs/http_parser"
+    "libs/http_parser",
+    "libs/json_parser", 
+    "libs/tcp_wrapper", 
+    "libs/smol_server"
 ]
 
-[workspace.dependencies]
+
+

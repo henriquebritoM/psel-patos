@@ -1,52 +1,51 @@
-use std::{backtrace::BacktraceStatus, io::{BufRead, BufReader, ErrorKind, Read}, str::FromStr};
-use http_parser::request::Request;
-use std::net::{TcpListener, TcpStream};
-
+use std::{net::SocketAddr, path::Path};
+use http_parser::{Method, Request, Response, StatusCode};
+use json_parser::retrieve;
+use smol_server::{Client, Server};
 
 fn main() {
     println!("starting reverse proxy");
 
-    //  listener para as conexões dos clientes
-    // let listener = TcpListener::bind("localhost:0").expect("Não foi possível se conectar a nenhuma porta");
-    let listener = TcpListener::bind("localhost:8080").expect("Não foi possível se conectar a nenhuma porta");
+    let mut web_server = Server::init("localhost:8080");
+    let app_server = Client::init(get_addr()).expect("Não foi possível conectar-se ao app server");
 
-    println!("Escutando na porta {}", listener.local_addr().unwrap());
+    init(&mut web_server);
+    web_server.add_api("app", app_server);
 
-    //  Loop principal das conexões dos clientes
-    for stream in listener.incoming() {
-
-        //  Ignora as coneções que falharam em se conectar
-        let stream = match stream {
-            Ok(s) => s,
-            Err(_) => continue,
-        };
-
-        let str = read_stream(&stream).unwrap();
-        println!("{:?}", str);
-        let request = Request::from_str(&str).unwrap();
-
-        println!("{:?}", request);
-
-    }
-
+    web_server.run();
 }
 
-/// Retorna uma String lida da stream
-/// None indica que o cliente se desconectou, recomendado fechar a stream
-fn read_stream(mut stream: &TcpStream) -> Option<String> {
-
-    let mut temp_str = String::new();
-    let mut buffer: [u8; 4096] = [b' '; 4096];
-
-    loop {
-        match stream.read(&mut buffer) {
-            Ok(_) => break,
-            Err(e) if e.kind() == ErrorKind::Interrupted => continue,
-            _ => return None
-        }
-    }
-    
-    temp_str.push_str(&String::from_utf8_lossy(&buffer));
-
-    return Some(temp_str.trim().to_string());
+fn init(server: &mut Server) {
+    server.add_fun(Method::GET, "/", get_index);
+    server.add_fun(Method::GET, "/assets/js/script.js", get_script);
+    server.add_fun(Method::GET, "/assets/css/style.css", get_css);
+    server.add_fun(Method::GET, "/assets/image.jpg", get_image);
 }
+
+fn get_index(server: &mut Server, req: &mut Request) -> Result<Response, StatusCode> {
+    let response = server.api_send("app", req);
+    Ok(response)
+}
+
+fn get_css(server: &mut Server, req: &mut Request) -> Result<Response, StatusCode> {
+    let response = server.api_send("app", req);
+    Ok(response)
+}
+
+fn get_image(server: &mut Server, req: &mut Request) -> Result<Response, StatusCode> {
+    let response = server.api_send("app", req);
+    Ok(response)
+}
+
+fn get_script(server: &mut Server, req: &mut Request) -> Result<Response, StatusCode> {
+    let response = server.api_send("app", req);
+    Ok(response)
+}
+
+fn get_addr() -> SocketAddr {
+    let json_path: &Path = Path::new("../socket_addr.json");
+
+    let addr = retrieve(json_path).expect("Nenhum socket para conectar-se ao app server");
+    return addr;
+}
+

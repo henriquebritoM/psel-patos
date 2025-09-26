@@ -4,3 +4,7 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
+http_parser = { path = "../libs/http_parser" }
+json_parser = { path = "../libs/json_parser" }
+smol_server = { version = "0.1.0", path = "../libs/smol_server" }
+tcp_wrapper = { path = "../libs/tcp_wrapper"}
