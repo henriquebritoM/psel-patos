@@ -5,7 +5,7 @@ use crate::errors::ParseErr;
 /// Enum com os diferentes procolos que uma mensagem http pode ter
 //  aqui só vamos usar http/1.1, mas teria mais utilidade  
 //  se fosse preciso uma peneira mais fina
-#[derive(Debug)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub enum Protocol {
     Http09,
     Http10,

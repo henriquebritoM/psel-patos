@@ -5,7 +5,7 @@ use crate::errors::ParseErr;
 /// Enum com os diferentes métodos que uma request HTTP pode ter
 //  Como no Methodo, aqui só aceitaremos GET, mas acredito que
 //  ajudaria muito em projetos maiores
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq, Clone, Copy)]
 pub enum Method {
     GET,
     HEAD,

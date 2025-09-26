@@ -10,4 +10,8 @@
 pub mod errors;
 pub mod request;
 pub mod response;
-mod parsers;
+pub mod parts;
+pub use errors::ParseErr;
+pub use request::request::Request;
+pub use response::response::Response;
+pub use parts::{header::Header, method::Method, protocol::Protocol, status_code::StatusCode};
