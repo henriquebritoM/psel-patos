@@ -36,7 +36,10 @@ impl Client {
         let response = read_response(&mut self.server_stream).expect("api se desconectou");
         return match response {
             Ok(r) => r,
-            Err(_) => Response::new().status(StatusCode::InternalServerError).build()
+            Err(e) => {
+                eprintln!("Erro ao receber response: {e}");
+                Response::new().status(StatusCode::InternalServerError).build()
+            }
         }
     }
 }

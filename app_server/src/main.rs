@@ -4,8 +4,8 @@ use http_parser::{Method, StatusCode};
 use json_parser::save;
 use smol_server::{Server};
 
-mod get_handler;
-use get_handler::*;
+mod handler;
+use handler::*;
 mod errors_handler;
 use errors_handler::*;
 
@@ -37,10 +37,9 @@ fn config(proxy: &mut Server) {
     use Method::*;
     use StatusCode::*;
 
-    proxy.add_fun(GET, "/", get_index);
-    proxy.add_fun(GET, "/assets/js/script.js", get_script);
-    proxy.add_fun(GET, "/assets/css/style.css", get_css);
-    proxy.add_fun(GET, "/assets/image.jpg", get_image);
+    proxy.add_fun(GET, "/pages/main_page/{*item}", get_item);
+    proxy.add_fun(POST, "/files/{*path}", post_item);
+
 
     proxy.add_fallback_fun(NotFound, not_found);
     proxy.add_fallback_fun(MethodNotAllowed, not_allowed);

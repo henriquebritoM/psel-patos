@@ -1,6 +1,7 @@
 use std::{collections::HashMap, net::{TcpListener, TcpStream, ToSocketAddrs}};
 
 use http_parser::{Method, Request, Response, StatusCode};
+use matchit::Router;
 use tcp_wrapper::{read_request, write_stream};
 
 use crate::Client;
@@ -14,8 +15,8 @@ type FallbackFunc = fn() -> Response;
 
 pub struct Server {
     listener: TcpListener,
-    endpoints: HashMap<String, Func>,
-    fallbacks: HashMap<u16, FallbackFunc>,
+    router: Router<Func>,                //  Uma URL router
+    fallbacks: HashMap<u16, FallbackFunc>,  
     apis: HashMap<String, Client>,
     keep_alive: bool
 }
@@ -25,7 +26,7 @@ impl Server {
 
         //  tcp listener para o servidor
         let listener = TcpListener::bind(addr).expect("Não foi possível conectar-se a porta");
-        return Server { listener, endpoints: HashMap::new(), fallbacks: HashMap::new(), apis: HashMap::new(), keep_alive: false };
+        return Server { listener, router: Router::new(), fallbacks: HashMap::new(), apis: HashMap::new(), keep_alive: false };
     }
 
     pub fn get_stream(&mut self) -> &mut TcpListener {
@@ -33,8 +34,8 @@ impl Server {
     }
 
     pub fn add_fun(&mut self, method: Method, path: &str, f: Func) {
-        let key = Server::get_hash_key(method, path);
-        self.endpoints.insert(key, f);
+        let key = Server::get_router_path(method, path);
+        self.router.insert(key, f).expect("path passado não é válido. Confira https://docs.rs/matchit/latest/matchit/all.html");
     }
 
     pub fn add_fallback_fun(&mut self, status_code: StatusCode, f: FallbackFunc) {
@@ -63,7 +64,7 @@ impl Server {
             let stream = self.listener.accept();
             //  Ignora conexões falhas
             match stream {
-                Err(_) => println!("Erro ao receber stream"),
+                Err(e) => println!("Erro ao conectar-se a stream: {e}"),
                 Ok((s, _)) => self.handle_connection(s),
             };
         }
@@ -76,22 +77,16 @@ impl Server {
             let Some(request) = read_request(&mut client_stream) else {return;};    //  Outro lado se desconectou, aborto
 
             let response = match request {
-                Err(_) => self.run_fallback(StatusCode::BadRequest),
-                Ok(mut r) => {
-                    let res = self.get_response(&mut r);
-                    // keep_alive = self.keep_alive(&r);
-                    res
+                Err(_) => {
+                    eprintln!("Request fora de formato, rodando fallback BadRequest");
+                    self.run_fallback(StatusCode::BadRequest)
                 }
+                Ok(mut r) => self.get_response(&mut r)
             };
 
-            println!("response body len = {}", response.body.len());
+            let Ok(_) = write_stream(&mut client_stream, &response.as_bytes()) else {return;};    //  Outro lado se desconectou, aborto
 
-            let Ok(_) = write_stream(&mut client_stream, &response.as_bytes()) else {continue;};
-            
-            println!("Manter tcp ? {}", self.keep_alive);
-            println!("Response ok? {}", !response.status.is_err());
-            println!("status {}", response.status.to_string());
-            if !self.keep_alive {println!("breaking");break;}
+            if !self.keep_alive {println!("Fechando stream");break;}
         }
     }
 
@@ -102,14 +97,18 @@ impl Server {
 
     fn get_response(&mut self, request: &mut Request) -> Response {
 
-        let key = Server::get_hash_key(request.method, &request.path);
+        let key = Server::get_router_path(request.method, &request.path);
         let Some(func) = self.get_func(&key) else {
+            eprintln!("Função não encontrada, rodando fallback");
             return self.run_fallback(StatusCode::NotFound);
         };
 
         return match func(self, request) {
             Ok(r) => r,
-            Err(sc) => self.run_fallback(sc),
+            Err(sc) => {
+                eprintln!("Função retornou um status code {}, rodando fallback", sc.to_string());
+                self.run_fallback(sc)
+            },
         }
     }
 
@@ -118,22 +117,32 @@ impl Server {
         let key = Server::get_fallback_hash_key(&status_code);
         let func = match self.get_fallback_func(key) {
             Some(f) => f,
-            None => return Response::new().status(status_code).build(),
+            None => {
+                eprintln!("fallback não encontrado para \'{}\', enviando apenas cabeçalho", status_code.to_string());
+                return Response::new().status(status_code).build()
+            },
         };
 
         return func();
     }
 
     fn get_func(&self, key: &str) -> Option<&Func> {
-        return self.endpoints.get(key)
+        return match self.router.at(key) {
+            Ok(matched) => Some(matched.value),
+            Err(_) => None,
+        }
     }
 
     fn get_fallback_func(&self, key: u16) -> Option<&FallbackFunc> {
         self.fallbacks.get(&key)
     }
 
-    fn get_hash_key(method: Method, path: &str) -> String {
-        return method.to_string() + "-" + path;
+    //  PORQUE um ' ' (whitespace) separando os campos?
+    //  durante um parsing de Request/Response um ' ' no meio do path
+    //  resultaria em um erro. Portanto não é possível acessar keys arbitrárias com o path.
+    /// converte o método path passado para router path
+    fn get_router_path(method: Method, path: &str) -> String {
+        return method.to_string() + " " + path;
     }
 
     fn get_fallback_hash_key(status_code: &StatusCode) -> u16 {

@@ -77,10 +77,10 @@ impl Response {
         //  separa o main header em método, path e protocolo
         let protocol = parts.next().ok_or(BadProtocol(others.clone()))?;
         let status_code = parts.next().ok_or(BadStatusCode(others.clone()))?;
-        let status_message = parts.next().ok_or(BadStatusCode(others.clone()))?;
+        let _status_message = parts.next().ok_or(BadStatusCode(others.clone()))?;   //  Seria mais útil se houvesse status code customizáveis
         return Ok((
                 Protocol::from_str(protocol)?,
-                StatusCode::from_str(status_code, Some(status_message))?,
+                StatusCode::from_str(status_code)?,
                 Header::from(header),
                 body
         ));

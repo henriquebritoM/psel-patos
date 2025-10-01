@@ -7,6 +7,9 @@ Deve ser desenvolvido um `Reverse Proxy/Servidor de Arquivos` (a partir de `Berk
 Linguagen:
 - Rust
 
+Havia implementado a pesquisa de paths por hashmap... tudo caiu por água abaixo quando precisei pesquisar caminhos genéricos, como "/pages/*"
+Mudando para uma TRIE, pelo que vi, parece ser o ideal 
+
 Lembrando que o objetivo não é ser algo extremamtente complexo, a ideia principal é integrar
 direto com o S.O., ou seja, NÃO utilizar libs que abstraiam demais as interações. Queremos
 saber o que vocês acharam difícil, como resolveram, onde acharam que poderiam ter ido mais
