@@ -1,7 +1,7 @@
 
 use std::str::FromStr;
 
-use crate::{errors::ParseErr, response::response_builder::ResponseBuilder, Header, Protocol, StatusCode};
+use crate::{errors::ParseErr, Header, Protocol, StatusCode};
 
 /// Struct para montagem modular de uma response HTTP
 #[derive(Debug, Clone)]
@@ -39,9 +39,44 @@ impl TryFrom<&[u8]> for Response {
 impl Response {
 
     /// Retorna uma instância de Response
-    pub fn new() -> ResponseBuilder {
-        return ResponseBuilder::new();
+    pub fn new() -> Response {
+        return Response {
+            protocol: Protocol::Http11,
+            status: StatusCode::NotFound,
+            headers: Header::new(),
+            body: Vec::new(),
+        };
     }
+
+    pub fn protocol(&mut self, p: Protocol) -> &mut Response {
+        self.protocol = p;
+        return self;
+    }
+
+    pub fn status(&mut self, sc: StatusCode) -> &mut Response {
+        self.status = sc;
+        return self;
+    }
+
+    pub fn add_header<T: ToString, U: ToString>(&mut self, field: T, value: U) -> &mut Response {
+        self.headers.add_header(field, value);
+        return self;
+    } 
+
+    pub fn body<T: Into<Vec<u8>>>(&mut self, body: T) -> &mut Response {
+        self.body = body.into();
+        let len = self.body.len();
+        self.add_header("Content-Length", len)
+    }
+
+    //  É necessário clonar o valor, mesma approach que o pessoal 
+    //  do "derive_builder", segundo eles a perda de performance é ínfima
+    pub fn build (&mut self) -> Response {
+        return self.clone();    
+    }
+}
+
+impl Response {
 
     /// Converte uma Response em um vetor de bytes
     pub fn as_bytes(&self) -> Vec<u8> {

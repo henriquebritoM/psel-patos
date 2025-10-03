@@ -42,4 +42,9 @@ impl Client {
             }
         }
     }
+
+    pub fn fetch(&mut self, request: &mut Request) -> Response {
+        self.send(request);
+        return self.receive();
+    }
 }

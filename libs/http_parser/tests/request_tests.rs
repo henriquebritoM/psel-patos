@@ -6,7 +6,7 @@ mod testes {
 
     #[test]
     fn test_to_default_to_string() {
-        let request = Request::new().build();
+        let request = Request::new();
 
         let expected= b"GET / HTTP/1.1\r\n\r\n";
 

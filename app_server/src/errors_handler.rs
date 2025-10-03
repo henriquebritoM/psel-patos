@@ -7,7 +7,7 @@ pub fn not_found() -> Response {
 
     match read(path) {
         Ok(body) => Response::new().status(StatusCode::NotFound).body(body).build(),
-        Err(_) => Response::new().build(),
+        Err(_) => Response::new(),
     }
 }
 
@@ -16,7 +16,7 @@ pub fn not_allowed() -> Response {
 
     match read(path) {
         Ok(body) => Response::new().status(StatusCode::MethodNotAllowed).body(body).build(),
-        Err(_) => Response::new().build(),
+        Err(_) => Response::new(),
     }   
 }
 
@@ -25,7 +25,7 @@ pub fn bad_request() -> Response {
 
     match read(path) {
         Ok(body) => Response::new().status(StatusCode::BadRequest).body(body).build(),
-        Err(_) => Response::new().build(),
+        Err(_) => Response::new(),
     }   
 }
 
@@ -34,7 +34,7 @@ pub fn server_error() -> Response {
 
     match read(path) {
         Ok(body) => Response::new().status(StatusCode::InternalServerError).body(body).build(),
-        Err(_) => Response::new().build(),
+        Err(_) => Response::new(),
     }   
 }
 
@@ -43,7 +43,7 @@ pub fn http_not_supported() -> Response {
 
     match read(path) {
         Ok(body) => Response::new().status(StatusCode::HttpVersionNotSupported).body(body).build(),
-        Err(_) => Response::new().build(),
+        Err(_) => Response::new(),
     }   
 }
 

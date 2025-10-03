@@ -9,14 +9,13 @@ use handler::*;
 mod errors_handler;
 use errors_handler::*;
 
-
 fn main() {
     println!("{:?}", args());
     println!("Hello, world!");
 
     let mut r_proxy = Server::init("localhost:0");
     save_addr(r_proxy.get_stream().local_addr().unwrap());  //  Salva o endereço para o proxy conectar-se
-    r_proxy.keep_alive(true);
+    r_proxy.keep_alive(true);   
 
     config(&mut r_proxy);
 
@@ -39,7 +38,7 @@ fn config(proxy: &mut Server) {
 
     proxy.add_fun(GET, "/pages/main_page/{*item}", get_item);
     proxy.add_fun(POST, "/files/{*path}", post_item);
-
+    proxy.add_fun(GET, "/files", list_files);
 
     proxy.add_fallback_fun(NotFound, not_found);
     proxy.add_fallback_fun(MethodNotAllowed, not_allowed);

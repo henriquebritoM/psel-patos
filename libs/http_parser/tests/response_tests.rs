@@ -6,7 +6,7 @@ mod testes {
 
     #[test]
     fn test_to_default_to_string() {
-        let response = Response::new().build();
+        let response = Response::new();
 
         let expected = b"HTTP/1.1 404 Not Found\r\n\r\n";
 

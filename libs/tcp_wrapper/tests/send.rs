@@ -17,8 +17,7 @@ mod testes {
                             .path("/index.html")
                             .protocol(Protocol::Http2)
                             .add_header("Content-Length", "3")
-                            .body("123")
-                            .build();
+                            .body("123");   
 
         let (mut receiver, _): (TcpStream, std::net::SocketAddr) = listener.accept().unwrap();
 

@@ -1,7 +1,6 @@
 use std::str::FromStr;
 
 use crate::errors::{ParseErr};
-use crate::request::request_builder::RequestBuilder;
 use crate::{Header, Method, Protocol};
 
 /// Struct para desmembrar uma request http padrão
@@ -41,9 +40,44 @@ impl TryFrom<&[u8]> for Request {
 }
 
 impl Request {
-    pub fn new() -> RequestBuilder {
-        return RequestBuilder::new();
+    pub fn new() -> Request {
+        return Request { 
+            method: Method::GET,
+            path: "/".to_string(),
+            protocol:Protocol::Http11,
+            headers: Header::new(),
+            body: Vec::new()
+        }
     }
+
+    pub fn method(mut self, m: Method) -> Request {
+        self.method = m;
+        return self;
+    }
+
+    pub fn path(mut self, p: &str) -> Request {
+        self.path = p.to_string();
+        return self;
+    }
+
+    pub fn protocol(mut self, p: Protocol) -> Request {
+        self.protocol = p;
+        return self;
+    }
+
+    pub fn add_header<T: ToString, U: ToString>(mut self, field: T, value: U) -> Request {
+        self.headers.add_header(field, value);
+        return self;
+    } 
+
+    pub fn body<T: Into<Vec<u8>>>(mut self, body: T) -> Request {
+        self.body = body.into();
+        let len = self.body.len();
+        self.add_header("Content-Length", len)
+    }
+}
+
+impl Request {
 
     /// Converte uma Request para bytes
     pub fn as_bytes(&self) -> Vec<u8> {

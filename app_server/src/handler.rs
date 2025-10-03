@@ -1,25 +1,26 @@
-use std::{fs::{read, write}, path::{self, Path, PathBuf}};
+use std::{fs::{read, write}, path::{Path, PathBuf}};
 
 use http_parser::{Request, Response, StatusCode};
-use smol_server::Server;
+use smol_server::Params;
 
-pub fn get_item(_server: &mut Server, req: &mut Request) -> Result<Response, StatusCode> {
+pub fn get_item(req: Request, res: &mut Response, _params: Params) -> Result<(), StatusCode> {
     //  formata o caminho
     let path_buff: PathBuf = PathBuf::from(r"..".to_string() + &req.path);
     let path: &Path = Path::new(&path_buff);
     println!("buscando em {:?}", path_buff);
 
     let body = read(path).ok().ok_or(StatusCode::NotFound)?;
-    let mut response = Response::new().status(StatusCode::OK).body(body).build();
+    
+    res.status(StatusCode::OK).body(body);
 
-    if let Some(ct) = get_content_type(req) {
-        response.headers.add_header("Content-Type", ct);
+    if let Some(ct) = req.headers.get_header_value("Content-Type") {
+        res.add_header("Content-Type", ct);
     }
 
-    return Ok(response);
+    return Ok(());
 }
 
-pub fn post_item(_server: &mut Server, req: &mut Request) -> Result<Response, StatusCode> {
+pub fn post_item(req: Request, res: &mut Response, _params: Params) -> Result<(), StatusCode> {
 
     let path_buff: PathBuf = PathBuf::from(r"..".to_string() + &req.path);
     let path: &Path = Path::new(&path_buff);
@@ -27,28 +28,29 @@ pub fn post_item(_server: &mut Server, req: &mut Request) -> Result<Response, St
     if path.exists() {return Err(StatusCode::Conflict);}
     let Ok(_) = write(path, &req.body) else {return Err(StatusCode::BadRequest)};
 
-    return Ok(
-        Response::new()
-        .status(StatusCode::Created)
-        .body(req.path.clone())
-        .build()
-    );
+    res.status(StatusCode::Created);
+    res.body(req.path.clone());
+    return Ok(());
 }
 
-/// Retorna o content-type de uma response (se houver)
-fn get_content_type(req: &Request) -> Option<&'static str>{
-    let content_type: Option<&'static str> = req.path.rsplit_once(".")
-        .map(|(_, ext)| match ext {
-            "png"  => "image/png",
-            "jpg" | "jpeg" => "image/jpeg",
-            "gif"  => "image/gif",
-            "svg"  => "image/svg+xml",
-            "css"  => "text/css; charset=utf-8",
-            "js"   => "application/javascript; charset=utf-8",
-            "html" => "text/html; charset=utf-8",
-            "json" => "application/json",
-            _      => "application/octet-stream",
-    }); 
+pub fn list_files(_req: Request, res: &mut Response, _params: Params) -> Result<(), StatusCode> {
 
-    return content_type;
+    let mut file_names: Vec<String> = Vec::new();
+
+    if let Ok(paths) = std::fs::read_dir("../files") {
+        for path in paths {
+            if let Ok(f) = path {
+                file_names.push(f.file_name().to_string_lossy().to_string());
+            };
+        }
+    }
+
+    let Ok(json) = serde_json::to_string(&file_names) else {return Err(StatusCode::InternalServerError);};
+
+    res.status(StatusCode::OK);
+    res.add_header("Content-Type", "application/json");
+    res.body(json);
+
+    return Ok(());
 }
+
