@@ -1,4 +1,4 @@
-use std::net::{TcpStream, ToSocketAddrs};
+use tokio::net::{TcpStream, ToSocketAddrs};
 
 use http_parser::{Request, Response, StatusCode};
 use tcp_wrapper::{read_response, write_stream};
@@ -9,16 +9,16 @@ pub struct Client {
 
 impl Client {
     /// Conecta-se ao addr passado, None se não for possível
-    pub fn init<A: ToSocketAddrs>(addr: A) -> Option<Client> {
-        let stream = TcpStream::connect(addr).ok()?;
+    pub async fn init<A: ToSocketAddrs>(addr: A) -> Option<Client> {
+        let stream = TcpStream::connect(addr).await.ok()?;
 
         return Some(Client {server_stream: stream });
     }
 
-    fn _try_reconnect(&mut self) -> bool {
+    async fn _try_reconnect(&mut self) -> bool {
         let Ok(addr) = self.server_stream.peer_addr() else {return false;};
 
-        let Ok(new_stream) = TcpStream::connect(addr) else {return false;};
+        let Ok(new_stream) = TcpStream::connect(addr).await else {return false;};
 
         self.server_stream = new_stream;
         return true;
@@ -28,12 +28,12 @@ impl Client {
         return &mut self.server_stream
     }
 
-    pub fn send(&mut self, request: &mut Request) -> bool {
-        write_stream(&mut self.server_stream, &request.as_bytes()).is_ok()
+    pub async fn send(&mut self, request: &mut Request) -> bool {
+        write_stream(&mut self.server_stream, &request.as_bytes()).await.is_ok()
     }
 
-    pub fn receive(&mut self) -> Response {
-        let response = read_response(&mut self.server_stream).expect("api se desconectou");
+    pub async fn receive(&mut self) -> Response {
+        let response = read_response(&mut self.server_stream).await.expect("api se desconectou");
         return match response {
             Ok(r) => r,
             Err(e) => {
@@ -43,8 +43,8 @@ impl Client {
         }
     }
 
-    pub fn fetch(&mut self, request: &mut Request) -> Response {
-        self.send(request);
-        return self.receive();
+    pub async fn fetch(&mut self, request: &mut Request) -> Response {
+        self.send(request).await;
+        return self.receive().await;
     }
 }
