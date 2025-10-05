@@ -40,12 +40,27 @@ impl Response {
 
     /// Retorna uma instância de Response
     pub fn new() -> Response {
-        return Response {
+        let mut r = Response {
             protocol: Protocol::Http11,
             status: StatusCode::NotFound,
             headers: Header::new(),
             body: Vec::new(),
         };
+        
+        r.add_header("Content-Length", 0);
+        r
+    }
+
+    /// Shorthand para fechar a conexão. <br>
+    /// Streams, por padrão, ficam abertar até que o client
+    /// explicite o fechamento
+    pub fn close(&mut self) {   
+        self.headers.add_header("Connection", "close");
+    }
+
+    /// retorna Header: Connection == close
+    pub fn closing(&self) -> bool {
+        return self.headers.get_header_value("Connection") == Some("close".to_owned());
     }
 
     pub fn protocol(&mut self, p: Protocol) -> &mut Response {
@@ -66,12 +81,15 @@ impl Response {
     pub fn body<T: Into<Vec<u8>>>(&mut self, body: T) -> &mut Response {
         self.body = body.into();
         let len = self.body.len();
-        self.add_header("Content-Length", len)
+        self.add_header("Content-Length", len);
+        return self;
     }
 
     //  É necessário clonar o valor, mesma approach que o pessoal 
     //  do "derive_builder", segundo eles a perda de performance é ínfima
     pub fn build (&mut self) -> Response {
+        let len = self.body.len();
+        self.add_header("Content-Length", len);
         return self.clone();    
     }
 }

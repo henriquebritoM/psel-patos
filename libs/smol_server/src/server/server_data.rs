@@ -1,7 +1,8 @@
-use std::{collections::HashMap, sync::{Arc, Mutex}};
+use std::{collections::HashMap, sync::Arc};
 
 use http_parser::{Method, Request, Response, StatusCode};
 use matchit::Router;
+use tokio::sync::Mutex;
 
 use crate::{server::fn_handler::{BoxFallbackHandler, BoxHandler}, Client};
 
@@ -9,27 +10,25 @@ use crate::{server::fn_handler::{BoxFallbackHandler, BoxHandler}, Client};
 /// Guarda dados gerais que diferentes threads podem querer
 /// acessar ao gerar uma response
 pub struct ServerData {
-    router: Router<BoxHandler>,                  //  Uma URL router
+    router: Router<(BoxHandler, Params)>,                  //  Uma URL router
     fallbacks: HashMap<u16, BoxFallbackHandler>,  
     apis: Arc<HashMap<String, Arc<Mutex<Client>>>>,
 }
 
 impl ServerData {
     // Torna apenas uma função publica para a crate, ao invés de tornar todos os campos de ServerData
-    pub(crate) fn create(router: Router<BoxHandler>, fallbacks: HashMap<u16, BoxFallbackHandler>, apis: Arc<HashMap<String, Arc<Mutex<Client>>>>) -> ServerData {
+    pub(crate) fn create(router: Router<(BoxHandler, Params)>, fallbacks: HashMap<u16, BoxFallbackHandler>, apis: Arc<HashMap<String, Arc<Mutex<Client>>>>) -> ServerData {
         return  ServerData {router, fallbacks, apis}
     }
 
     pub(crate) fn get_func(&self, key: &str) -> Option<(&BoxHandler, Params)> {
         let Ok(matched) = self.router.at(key) else {return None;};
 
-        let f = matched.value;
-        let mut p = Params 
-        {
-            apis: self.apis.clone(),
-            arguments: HashMap::new()
-        };
-        
+        let (f, p) = matched.value;
+        let mut p = p.clone();  // Os parâmetros são individuais para cada request, clonar é valido nessa situação
+
+        p.apis = self.apis.clone();
+
         let _ = matched.params.iter().map(
             |(key, value)| p.arguments.insert(key.to_string(), value.to_string())
         );
@@ -55,6 +54,7 @@ impl ServerData {
     }
 }
 
+#[derive(Clone)]
 pub struct Params {
     pub apis: Arc<HashMap<String, Arc<Mutex<Client>>>>,
     pub arguments: HashMap<String, String>
@@ -62,9 +62,10 @@ pub struct Params {
 
 impl Params {
     pub async fn api_fetch(&self, api_name: &str, mut req: Request) -> Response {
-        let api_temp = self.apis.get(api_name).expect("\'{}\' não é o nome de uma api").clone();
-        let mut api = api_temp.lock().unwrap();
-
+        let Some(api_temp) = self.apis.get(api_name) else {
+            return Response::new().status(StatusCode::InternalServerError).build();
+        };
+        let mut api  = api_temp.lock().await;
         api.send(&mut req).await;
         return api.receive().await;
     }

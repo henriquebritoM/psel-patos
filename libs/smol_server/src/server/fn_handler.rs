@@ -2,11 +2,11 @@
 //  eles tiraram leite de pedra para criar isso
 
 use http_parser::{Request, Response, StatusCode};
-use futures::future::BoxFuture;
+use futures::future::{BoxFuture, FutureExt};
 
 use crate::Params;
 
-pub type Result<StatusCode> = std::result::Result<(), StatusCode>;
+// pub type Result<StatusCode> = std::result::Result<Response, StatusCode>;
 pub type BoxHandler = Box<dyn FnHandler + Send>;
 pub type BoxFallbackHandler = Box<dyn FallbackHandler + Send>;
 
@@ -15,16 +15,17 @@ pub trait FnHandler: Send + Sync{
     /// req: a request em questão
     /// res: referência exclusiva à response
     /// 'a o futuro só é válido enquanto houver a response
-    fn call<'a>(&self, req: Request, res: &'a mut Response, params: Params) -> BoxFuture<'a, Result<StatusCode>>;
+    fn call(&'_ self, req: Request, res: Response, params: Params) -> BoxFuture<'_, Result<Response, StatusCode>>;
 }
 
-impl<F> FnHandler for F
+impl<F, Fut> FnHandler for F
 where
-    F: for<'a> Fn(Request, &'a mut Response, Params) -> BoxFuture<'a, Result<StatusCode>> + 'static + Send + Sync,
+    F: Fn(Request, Response, Params) -> Fut + Send + Sync + 'static,
+    Fut: Future<Output = Result<Response, StatusCode>> + Send + Sync + 'static
+    // F: for<'a> Fn(Request, &'a mut Response, Params) -> BoxFuture<'a, Result<StatusCode>> + 'static + Send + Sync,
 {
-    fn call<'a>(&self, req: Request, res: &'a mut Response, params: Params) -> BoxFuture<'a, Result<StatusCode>>
-    {
-        self(req, res, params)
+    fn call(&'_ self, req: Request, res: Response, params: Params) -> BoxFuture<'_, Result<Response, StatusCode>> {
+        self(req, res, params).boxed()
     }
 }
 
@@ -33,17 +34,18 @@ pub trait FallbackHandler: Send + Sync {
     /// req: a request em questão
     /// res: referência exclusiva à response
     /// 'a o futuro só é válido enquanto houver a response
-    fn call<'a>(&self, status: StatusCode, res: &'a mut Response) -> BoxFuture<'a, ()>;    
+    fn call(&'_ self) -> BoxFuture<'_, Response>;    
 }
 
-impl<F> FallbackHandler for F 
+impl<F, Fut> FallbackHandler for F 
 where
-    F: Fn(StatusCode, &mut Response) ->  BoxFuture<()> + 'static + Send + Sync
+    F: Fn() ->  Fut + 'static + Send + Sync,
+    Fut: Future<Output = Response> + Send + Sync + 'static
 {
     /// Executa a função passada e retorna seu Futuro
     //  Não podemos declarar funções async dentro de traits,
     //  então o futuro terá que ser await na implementação
-    fn call<'a>(&self, status: StatusCode, res: &'a mut Response) -> BoxFuture<'a, ()> {
-        self(status, res)
+    fn call(&'_ self) -> BoxFuture<'_, Response> {
+        self().boxed()
     }
 }

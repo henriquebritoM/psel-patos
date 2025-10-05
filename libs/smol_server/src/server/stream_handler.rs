@@ -1,5 +1,5 @@
-use std::sync::Arc;
-use http_parser::{Request, Response, StatusCode};
+use std::{sync::Arc, time::Duration};
+use http_parser::{response, Request, Response, StatusCode};
 use tcp_wrapper::{read_request, write_stream};
 use tokio::{net::TcpStream};
 
@@ -17,23 +17,30 @@ impl ConectionHandler {
     }
 
     pub(crate) async fn handle_connection(&mut self) {
-        // client_stream.set_read_timeout(Some(Duration::from_secs(5))).unwrap();
-        // client_stream.set_write_timeout(Some(Duration::from_secs(5))).unwrap();
-        let Some(request) = read_request(&mut self.stream).await else {return;};    //  Outro lado se desconectou, aborto
+        let mut response: Response;
+        let mut keep_alive: bool = true;
 
-        let response: Response;
+        while keep_alive {
+            
+            let Some(request) = read_request(&mut self.stream).await else {return;};    //  Outro lado se desconectou, aborto
+            response = match request {
+                Ok(r) => {
+                    keep_alive = !r.closing();
+                    self.get_response(r).await
+                },
+                Err(_) => {
+                    eprintln!("Request fora de formato, rodando fallback BadRequest");
+                    self.run_fallback(StatusCode::BadRequest).await
+                },
+            };
 
-        if let Ok(r) = request {
-            response = self.get_response(r).await
-        } else {
-            eprintln!("Request fora de formato, rodando fallback BadRequest");
-            response = self.run_fallback(StatusCode::BadRequest).await;
+            keep_alive = keep_alive && !response.closing();
+
+            let Ok(_) = write_stream(&mut self.stream, &response.as_bytes()).await else {return;};    //  Outro lado se desconectou, aborto
         }
-        
-        let Ok(_) = write_stream(&mut self.stream, &response.as_bytes()).await else {return;};    //  Outro lado se desconectou, aborto
+
     }
     
-
     pub(crate) async fn get_response(&mut self, request: Request) -> Response {
 
         let key = ServerData::get_router_path(request.method, &request.path);
@@ -42,10 +49,11 @@ impl ConectionHandler {
             return self.run_fallback(StatusCode::NotFound).await;
         };
 
-        let mut response = Response::new();
+        let response = Response::new();
 
-        if let Err(sc) = func.call(request, &mut response, params).await  {
-            response = self.run_fallback(sc).await;
+        let response = match func.call(request, response, params).await {
+            Ok(r) => r,
+            Err(sc) =>  self.run_fallback(sc).await,
         };
 
         return response;
@@ -60,8 +68,9 @@ impl ConectionHandler {
             return Response::new().status(status_code).build()
         };
 
-        let mut response = Response::new();
-        func.call(status_code, &mut response).await;
+        let mut response = func.call().await;
+        response.close();   
+
         return response;
     }
 }

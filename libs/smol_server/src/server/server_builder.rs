@@ -1,31 +1,31 @@
 use std::collections::HashMap;
-use std::sync::{Arc, Mutex};
+use std::sync::Arc;
 
-use futures::future::BoxFuture;
 use http_parser::{Request, Response};
 use http_parser::{Method, StatusCode};
 use matchit::{Router};
 use tokio::net::TcpListener;
+use tokio::sync::Mutex;
 
 use crate::server::server_data::ServerData;
-use crate::{server::fn_handler::{BoxFallbackHandler, BoxHandler, Result}, Client, Params, Server};
+use crate::{server::fn_handler::{BoxFallbackHandler, BoxHandler}, Client, Params, Server};
 
 /// struct para construção de um Server
 /// Esse modele de construtor impede que os campos 
 /// do Server sejam modificados após sua criação
 pub struct ServerBuilder {
     listener: TcpListener,
-    router: Router<BoxHandler>,                  //  Uma URL router
+    router: Router<(BoxHandler, Params)>,                  //  Uma URL router
     fallbacks: HashMap<u16, BoxFallbackHandler>,  
     apis: HashMap<String, Arc<Mutex<Client>>>,
-    keep_alive: bool
+    temp_fns: Vec<(String, BoxHandler)>               //  só é possível colocar no router durante o build
 }
 
 impl ServerBuilder {
 
     // Torna apenas uma função publica para a crate, ao invés de tornar todos os campos de ServerBuilder
-    pub(crate) fn create(listener: TcpListener, router: Router<BoxHandler>, fallbacks: HashMap<u16, BoxFallbackHandler>, apis: HashMap<String, Arc<Mutex<Client>>>, keep_alive: bool) -> ServerBuilder {
-        return ServerBuilder { listener, router, fallbacks, apis, keep_alive };
+    pub(crate) fn create(listener: TcpListener) -> ServerBuilder {
+        return ServerBuilder { listener, router: Router::new(), fallbacks: HashMap::new(), apis: HashMap::new(), temp_fns: Vec::new() };
     }
 
     /// Adiciona uma função padrão que é executada quando <br>
@@ -35,12 +35,15 @@ impl ServerBuilder {
     /// 
     /// # PANICS
     /// se o path não for válido
-    pub fn add_fun<F>(&mut self, method: Method, path: &str, f: F) 
+    pub fn add_fun<F, Fut>(&mut self, method: Method, path: &str, f: F) 
     where
-        F: for<'a> Fn(Request, &'a mut Response, Params) -> BoxFuture<'a, Result<StatusCode>> +'static + Send + Sync
+         //BoxFuture<'a, Result<StatusCode>> +'static + Send + Sync
+        F: Fn(Request, Response, Params) -> Fut + Send + Sync + 'static,
+        Fut: Future<Output = Result<Response, StatusCode>> + Send + Sync + 'static
     {
         let key = ServerData::get_router_path(method, path);
-        self.router.insert(key, Box::new(f)).expect("path passado não é válido. Confira https://docs.rs/matchit/latest/matchit/all.html");
+        // let future = f()
+        self.temp_fns.push((key, Box::new(f)));  
     }
 
     /// Adiciona uma função de fallbacks. <br>
@@ -48,9 +51,10 @@ impl ServerBuilder {
     /// quando há um problema na request ou <br>
     /// quando uma função padrão retorna um StatusCode <br>
     /// Adequadas para **definir Responses padrões para erros**
-    pub fn add_fallback_fun<F>(&mut self, status_code: StatusCode, f: F) 
+    pub fn add_fallback_fun<F, Fut>(&mut self, status_code: StatusCode, f: F) 
     where
-        F: Fn(StatusCode, &mut Response) ->  BoxFuture<()> + 'static + Send + Sync
+        F: Fn() ->  Fut + 'static + Send + Sync,
+        Fut: Future<Output = Response> + Send + Sync + 'static
     {
         let key = ServerData::get_fallback_hash_key(&status_code);
         self.fallbacks.insert(key, Box::new(f));
@@ -65,7 +69,14 @@ impl ServerBuilder {
     }
 
     /// Conclui a criação e retorna uma instância de Server
-    pub fn build(self) -> Server {
-        return Server::create(self.listener, self.router, self.fallbacks, Arc::new(self.apis), self.keep_alive);
+    pub fn build(mut self) -> Server {
+        let apis_arc = Arc::new(self.apis); //  A partir de agora isso não pode mais ser modificado
+        let p = Params{ apis: apis_arc.clone(), arguments: HashMap::new() };    
+
+        for (key, f) in self.temp_fns {
+            self.router.insert(key, (f, p.clone())).unwrap(); //    Mandar a mensagem de erro do matchit
+        };
+        return Server::create(self.listener, self.router, self.fallbacks, apis_arc);
     }
 }
+

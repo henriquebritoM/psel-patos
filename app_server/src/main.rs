@@ -6,20 +6,16 @@ use smol_server::{Server};
 
 mod handler;
 use handler::*;
-mod errors_handler;
-use errors_handler::*;
 
-fn main() {
+#[tokio::main]
+async fn main() {
     println!("{:?}", args());
     println!("Hello, world!");
 
-    let mut r_proxy = Server::init("localhost:0");
+    let mut r_proxy = init().await;
     save_addr(r_proxy.get_stream().local_addr().unwrap());  //  Salva o endereço para o proxy conectar-se
-    r_proxy.keep_alive(true);   
 
-    config(&mut r_proxy);
-
-    r_proxy.run();
+    r_proxy.run().await;
 }
 
 fn save_addr(addr: SocketAddr) {
@@ -32,19 +28,17 @@ fn save_addr(addr: SocketAddr) {
     save(json_path, addr).unwrap();
 }
 
-fn config(proxy: &mut Server) {
+async fn init() -> Server {
     use Method::*;
-    use StatusCode::*;
 
-    proxy.add_fun(GET, "/pages/main_page/{*item}", get_item);
-    proxy.add_fun(POST, "/files/{*path}", post_item);
-    proxy.add_fun(GET, "/files", list_files);
+    let mut builder = Server::init("localhost:0").await;
+    
+    builder.add_fun(GET, "/pages/main_page/{*item}", get_item);
+    builder.add_fun(POST, "/files/{*path}", post_item);
+    builder.add_fun(GET, "/files", list_files);
 
-    proxy.add_fallback_fun(NotFound, not_found);
-    proxy.add_fallback_fun(MethodNotAllowed, not_allowed);
-    proxy.add_fallback_fun(BadRequest, bad_request);
-    proxy.add_fallback_fun(HttpVersionNotSupported, http_not_supported);
-    proxy.add_fallback_fun(InternalServerError, server_error);
+    builder.build()
 }
+
 
 

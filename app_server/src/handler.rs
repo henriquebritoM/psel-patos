@@ -3,7 +3,7 @@ use std::{fs::{read, write}, path::{Path, PathBuf}};
 use http_parser::{Request, Response, StatusCode};
 use smol_server::Params;
 
-pub fn get_item(req: Request, res: &mut Response, _params: Params) -> Result<(), StatusCode> {
+pub async fn get_item(req: Request, mut res: Response, _params: Params) -> Result<Response, StatusCode> {
     //  formata o caminho
     let path_buff: PathBuf = PathBuf::from(r"..".to_string() + &req.path);
     let path: &Path = Path::new(&path_buff);
@@ -17,10 +17,10 @@ pub fn get_item(req: Request, res: &mut Response, _params: Params) -> Result<(),
         res.add_header("Content-Type", ct);
     }
 
-    return Ok(());
+    return Ok(res);
 }
 
-pub fn post_item(req: Request, res: &mut Response, _params: Params) -> Result<(), StatusCode> {
+pub async fn post_item(req: Request, mut res: Response, _params: Params) -> Result<Response, StatusCode> {
 
     let path_buff: PathBuf = PathBuf::from(r"..".to_string() + &req.path);
     let path: &Path = Path::new(&path_buff);
@@ -30,10 +30,10 @@ pub fn post_item(req: Request, res: &mut Response, _params: Params) -> Result<()
 
     res.status(StatusCode::Created);
     res.body(req.path.clone());
-    return Ok(());
+    return Ok(res);
 }
 
-pub fn list_files(_req: Request, res: &mut Response, _params: Params) -> Result<(), StatusCode> {
+pub async fn list_files(_req: Request, mut res: Response, _params: Params) -> Result<Response, StatusCode> {
 
     let mut file_names: Vec<String> = Vec::new();
 
@@ -51,6 +51,6 @@ pub fn list_files(_req: Request, res: &mut Response, _params: Params) -> Result<
     res.add_header("Content-Type", "application/json");
     res.body(json);
 
-    return Ok(());
+    return Ok(res);
 }
 

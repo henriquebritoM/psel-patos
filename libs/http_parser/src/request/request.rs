@@ -50,6 +50,18 @@ impl Request {
         }
     }
 
+    /// Shorthand para fechar a conexão. <br>
+    /// Streams, por padrão, ficam abertar até que o client
+    /// explicite o fechamento
+    pub fn close(&mut self) {   
+        self.headers.add_header("Connection", "close");
+    }
+
+    /// retorna Header: Connection == close
+    pub fn closing(&self) -> bool {
+        return self.headers.get_header_value("Connection") == Some("close".to_owned());
+    }
+
     pub fn method(mut self, m: Method) -> Request {
         self.method = m;
         return self;
