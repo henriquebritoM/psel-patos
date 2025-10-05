@@ -7,7 +7,7 @@ use matchit::{Router};
 use tokio::net::TcpListener;
 use tokio::sync::Mutex;
 
-use crate::server::server_data::ServerData;
+use crate::server::server_data::{ServerData, ToStatic};
 use crate::{server::fn_handler::{BoxFallbackHandler, BoxHandler}, Client, Params, Server};
 
 /// struct para construção de um Server
@@ -42,8 +42,9 @@ impl ServerBuilder {
         Fut: Future<Output = Result<Response, StatusCode>> + Send + Sync + 'static
     {
         let key = ServerData::get_router_path(method, path);
-        // let future = f()
-        self.temp_fns.push((key, Box::new(f)));  
+
+        let leaked: &'static F = f.to_static();
+        self.temp_fns.push((key, leaked));  
     }
 
     /// Adiciona uma função de fallbacks. <br>
@@ -57,7 +58,9 @@ impl ServerBuilder {
         Fut: Future<Output = Response> + Send + Sync + 'static
     {
         let key = ServerData::get_fallback_hash_key(&status_code);
-        self.fallbacks.insert(key, Box::new(f));
+
+        let leaked = f.to_static();
+        self.fallbacks.insert(key, leaked);
     }
 
     /// Adiciona uma api ao seu servidor. <br>
@@ -70,13 +73,14 @@ impl ServerBuilder {
 
     /// Conclui a criação e retorna uma instância de Server
     pub fn build(mut self) -> Server {
-        let apis_arc = Arc::new(self.apis); //  A partir de agora isso não pode mais ser modificado
-        let p = Params{ apis: apis_arc.clone(), arguments: HashMap::new() };    
+        let apis_leak = self.apis.to_static();
+
+        let p = Params{ apis: apis_leak, arguments: HashMap::new() };    
 
         for (key, f) in self.temp_fns {
             self.router.insert(key, (f, p.clone())).unwrap(); //    Mandar a mensagem de erro do matchit
         };
-        return Server::create(self.listener, self.router, self.fallbacks, apis_arc);
+        return Server::create(self.listener, self.router, self.fallbacks);
     }
 }
 

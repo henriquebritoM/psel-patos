@@ -1,14 +1,13 @@
-use std::{collections::HashMap, sync::Arc};
-use tokio::{net::{TcpListener, ToSocketAddrs}, sync::Mutex};
+use std::collections::HashMap;
+use tokio::net::{TcpListener, ToSocketAddrs};
 
 use matchit::Router;
 
 use crate::{server::{fn_handler::{BoxFallbackHandler, BoxHandler},server_builder::ServerBuilder, server_data::ServerData, stream_handler::ConectionHandler}, Params};
-use crate::Client;
 
 pub struct Server {
     listener: TcpListener,
-    data: Arc<ServerData>,
+    data: &'static ServerData,
 }
 
 //  Bloco de setters e getters
@@ -20,8 +19,8 @@ impl Server {
     }
 
     // Torna apenas uma função publica para a crate, ao invés de tornar todos os campos de Server
-    pub(crate) fn create(listener: TcpListener, router: Router<(BoxHandler, Params)>, fallbacks: HashMap<u16, BoxFallbackHandler>, apis: Arc<HashMap<String, Arc<Mutex<Client>>>>) -> Server {
-        return Server { listener, data: Arc::new(ServerData::create(router, fallbacks, apis)) };
+    pub(crate) fn create(listener: TcpListener, router: Router<(BoxHandler, Params)>, fallbacks: HashMap<u16, BoxFallbackHandler>) -> Server {
+        return Server { listener, data: ServerData::create(router, fallbacks) };
     }
 
     pub fn get_stream(&mut self) -> &mut TcpListener {
@@ -47,8 +46,8 @@ impl Server {
                 println!("Erro ao conectar-se a stream");
                 continue;
             };
-            let data_clone = self.data.clone();
-            tokio::task::spawn(async move {ConectionHandler::handle(data_clone, stream).await});
+            let data = self.data;
+            tokio::task::spawn(async move {ConectionHandler::handle(data, stream).await});
 
         }
     }

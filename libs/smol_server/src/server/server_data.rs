@@ -11,29 +11,27 @@ use crate::{server::fn_handler::{BoxFallbackHandler, BoxHandler}, Client};
 /// acessar ao gerar uma response
 pub struct ServerData {
     router: Router<(BoxHandler, Params)>,                  //  Uma URL router
-    fallbacks: HashMap<u16, BoxFallbackHandler>,  
-    apis: Arc<HashMap<String, Arc<Mutex<Client>>>>,
+    fallbacks: HashMap<u16, BoxFallbackHandler>,
 }
 
 impl ServerData {
     // Torna apenas uma função publica para a crate, ao invés de tornar todos os campos de ServerData
-    pub(crate) fn create(router: Router<(BoxHandler, Params)>, fallbacks: HashMap<u16, BoxFallbackHandler>, apis: Arc<HashMap<String, Arc<Mutex<Client>>>>) -> ServerData {
-        return  ServerData {router, fallbacks, apis}
+    pub(crate) fn create(router: Router<(BoxHandler, Params)>, fallbacks: HashMap<u16, BoxFallbackHandler>) -> &'static ServerData {
+        let data = ServerData {router, fallbacks};
+        return  data.to_static();
     }
 
-    pub(crate) fn get_func(&self, key: &str) -> Option<(&BoxHandler, Params)> {
+    pub(crate) fn get_func(&self, key: &str) -> Option<(BoxHandler, Params)> {
         let Ok(matched) = self.router.at(key) else {return None;};
 
         let (f, p) = matched.value;
         let mut p = p.clone();  // Os parâmetros são individuais para cada request, clonar é valido nessa situação
 
-        p.apis = self.apis.clone();
-
         let _ = matched.params.iter().map(
             |(key, value)| p.arguments.insert(key.to_string(), value.to_string())
         );
 
-        return Some((f, p));
+        return Some((*f, p));
     }
 
     pub(crate) fn get_fallback_func(&self, key: u16) -> Option<&BoxFallbackHandler>  {
@@ -56,7 +54,7 @@ impl ServerData {
 
 #[derive(Clone)]
 pub struct Params {
-    pub apis: Arc<HashMap<String, Arc<Mutex<Client>>>>,
+    pub apis: &'static HashMap<String, Arc<Mutex<Client>>>,
     pub arguments: HashMap<String, String>
 }
 
@@ -74,3 +72,17 @@ impl Params {
         return self.arguments.get(param_name).expect("\'{}\' não é um parâmetro").to_string();
     }
 }
+
+/// Causa um **memory leak** no dado passado, <br>
+/// o tornando válido por toda a duração do programa
+/// 
+/// # NÃO ABUSE
+pub(crate) trait ToStatic: Sized {
+    fn to_static(self) -> &'static Self {
+        let boxed = Box::new(self);
+        let leaked: &'static Self = Box::leak(boxed);
+        return leaked;
+    }
+}
+
+impl<T: Sized> ToStatic for T {}

@@ -1,17 +1,16 @@
-use std::{sync::Arc, time::Duration};
-use http_parser::{response, Request, Response, StatusCode};
+use http_parser::{Request, Response, StatusCode};
 use tcp_wrapper::{read_request, write_stream};
 use tokio::{net::TcpStream};
 
 use crate::server::server_data::ServerData;
 
 pub(crate) struct ConectionHandler {
-    data: Arc<ServerData>,
+    data: &'static ServerData,
     stream: TcpStream
 }
 
 impl ConectionHandler {
-    pub(crate) async fn handle(data: Arc<ServerData>, stream: TcpStream) {
+    pub(crate) async fn handle(data: &'static ServerData, stream: TcpStream) {
         let mut handler = ConectionHandler { data, stream };
         handler.handle_connection().await;
     }

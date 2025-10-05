@@ -7,10 +7,10 @@ use futures::future::{BoxFuture, FutureExt};
 use crate::Params;
 
 // pub type Result<StatusCode> = std::result::Result<Response, StatusCode>;
-pub type BoxHandler = Box<dyn FnHandler + Send>;
-pub type BoxFallbackHandler = Box<dyn FallbackHandler + Send>;
+pub type BoxHandler = &'static (dyn FnHandler);
+pub type BoxFallbackHandler = &'static (dyn FallbackHandler);
 
-pub trait FnHandler: Send + Sync{
+pub trait FnHandler: Send + Sync {
     /// self: Referência para a função que implementa o trait
     /// req: a request em questão
     /// res: referência exclusiva à response
