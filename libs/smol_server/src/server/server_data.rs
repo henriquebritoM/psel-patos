@@ -1,17 +1,15 @@
-use std::{collections::HashMap, sync::Arc};
+use std::{collections::HashMap, net::SocketAddr};
 
-use http_parser::{Method, Request, Response, StatusCode};
+use http_parser::{Method, StatusCode};
 use matchit::Router;
-use tokio::sync::Mutex;
 
 use crate::{server::fn_handler::{BoxFallbackHandler, BoxHandler}, Client};
-
 
 /// Guarda dados gerais que diferentes threads podem querer
 /// acessar ao gerar uma response
 pub struct ServerData {
-    router: Router<(BoxHandler, Params)>,                  //  Uma URL router
-    fallbacks: HashMap<u16, BoxFallbackHandler>,
+    router: Router<(BoxHandler, Params)>,                  //  URL router
+    fallbacks: HashMap<u16, BoxFallbackHandler>,           //  Funções de fallback
 }
 
 impl ServerData {
@@ -21,6 +19,8 @@ impl ServerData {
         return  data.to_static();
     }
 
+    /// Retorna a função que der match na key, 
+    /// se houver alguma
     pub(crate) fn get_func(&self, key: &str) -> Option<(BoxHandler, Params)> {
         let Ok(matched) = self.router.at(key) else {return None;};
 
@@ -34,6 +34,8 @@ impl ServerData {
         return Some((*f, p));
     }
 
+    /// Retorna a função que der match na key, 
+    /// se houver alguma
     pub(crate) fn get_fallback_func(&self, key: u16) -> Option<&BoxFallbackHandler>  {
         self.fallbacks.get(&key)
     }
@@ -52,24 +54,27 @@ impl ServerData {
     }
 }
 
+/// Struct passadas para as funções padrões. <br>
+/// arguments corresponde aos arumentos genéricos passados no path
+/// apis correspondem ás passadas durante a criação do Server
 #[derive(Clone)]
 pub struct Params {
-    pub apis: &'static HashMap<String, Arc<Mutex<Client>>>,
+    pub apis: &'static HashMap<String, SocketAddr>,
     pub arguments: HashMap<String, String>
 }
 
 impl Params {
-    pub async fn api_fetch(&self, api_name: &str, mut req: Request) -> Response {
-        let Some(api_temp) = self.apis.get(api_name) else {
-            return Response::new().status(StatusCode::InternalServerError).build();
-        };
-        let mut api  = api_temp.lock().await;
-        api.send(&mut req).await;
-        return api.receive().await;
+    /// Retorna um Client a partir no nome passado <br>
+    /// None significa que não é possível estabelecer conexão
+    pub async fn get_api(&self, api_name: &str) -> Option<Client> {
+        let api_socket = self.apis.get(api_name).unwrap();
+        Client::init(api_socket).await
     }
 
+    /// Retorna um argumento genérico passado no path,
+    /// deve ser usado o mesmo nome que foi usado na definição do path
     pub fn get(&self, param_name: &str) -> String {
-        return self.arguments.get(param_name).expect("\'{}\' não é um parâmetro").to_string();
+        return self.arguments.get(param_name).unwrap().to_string();
     }
 }
 

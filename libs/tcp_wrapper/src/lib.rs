@@ -17,7 +17,7 @@ pub async fn read_request(stream: &mut TcpStream) -> Option<Result<Request, Pars
         Err(e) => return Some(Err(e)),
     };
 
-    let body_len = req.headers.get_header_value("Content-Length").unwrap_or("0".to_string());
+    let body_len = req.headers.get_header("Content-Length").unwrap_or("0".to_string());
     let body_len: usize = body_len.parse().unwrap_or(0);
     
     req.body = read_body(stream, body_len).await;
@@ -39,7 +39,7 @@ pub async fn read_response(stream: &mut TcpStream) -> Option<Result<Response, Pa
         Err(e) => return Some(Err(e)),
     };
 
-    let body_len = res.headers.get_header_value("Content-Length").unwrap_or("0".to_string());
+    let body_len = res.headers.get_header("Content-Length").unwrap_or("0".to_string());
     let body_len: usize = body_len.parse().unwrap_or(0);
     
     res.body = read_body(stream, body_len).await;

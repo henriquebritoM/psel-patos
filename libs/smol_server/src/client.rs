@@ -3,6 +3,7 @@ use tokio::net::{TcpStream, ToSocketAddrs};
 use http_parser::{Request, Response, StatusCode};
 use tcp_wrapper::{read_response, write_stream};
 
+/// Um handler para uma conexão com algum servidor
 pub struct Client {
     server_stream: TcpStream,
 }
@@ -15,6 +16,7 @@ impl Client {
         return Some(Client {server_stream: stream });
     }
 
+    /// Tenta se reconectar ao servidor
     async fn _try_reconnect(&mut self) -> bool {
         let Ok(addr) = self.server_stream.peer_addr() else {return false;};
 
@@ -24,26 +26,27 @@ impl Client {
         return true;
     }
 
+    /// Retorna a stream que Client está ligado
     pub fn get_stream(&mut self) -> &mut TcpStream {
         return &mut self.server_stream
     }
 
-    pub async fn send(&mut self, request: &mut Request) -> bool {
+    /// Envia uma Request para o servidor
+    pub async fn send(&mut self, request: &Request) -> bool {
         write_stream(&mut self.server_stream, &request.as_bytes()).await.is_ok()
     }
 
+    /// Recebe uma Response do servidro
     pub async fn receive(&mut self) -> Response {
-        let response = read_response(&mut self.server_stream).await.expect("api se desconectou");
+        let response = read_response(&mut self.server_stream).await; //.expect("api se desconectou");
         return match response {
-            Ok(r) => r,
-            Err(e) => {
-                eprintln!("Erro ao receber response: {e}");
-                Response::new().status(StatusCode::InternalServerError).build()
-            }
+            Some(Ok(r)) => r,
+            _ => Response::default(StatusCode::InternalServerError),
         }
     }
 
-    pub async fn fetch(&mut self, request: &mut Request) -> Response {
+    /// Envia uma Request ao servidor e retorna a Response
+    pub async fn fetch(&mut self, request: &Request) -> Response {
         self.send(request).await;
         return self.receive().await;
     }

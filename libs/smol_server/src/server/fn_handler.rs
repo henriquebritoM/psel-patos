@@ -6,15 +6,30 @@ use futures::future::{BoxFuture, FutureExt};
 
 use crate::Params;
 
-// pub type Result<StatusCode> = std::result::Result<Response, StatusCode>;
+/*
+ *  "Não é possível" passar um ponteiro para uma função que retorne um Future <br>
+ *  Os traits FnHandler e FallbackHandler permitem contornam essa limitação,
+ *  funcionando como wrappers em torno das funções originais, podendo ser passados
+ *  como "trait objects"
+ *  É preciso dar .await nos Futures retornados por call(), ou não haverá 
+ *  execução (como qualquer Future)
+*/
+
+/// Um trait object de FnHandler
 pub type BoxHandler = &'static (dyn FnHandler);
+
+/// Um trait object de FallbackHandler
 pub type BoxFallbackHandler = &'static (dyn FallbackHandler);
 
+
+/// Trait implementado para funções com a seguinte assinatura:
+/// ```rust 
+/// async fn(Request, Response, Param) -> Result<StatusCode, Response>
+/// ```
 pub trait FnHandler: Send + Sync {
-    /// self: Referência para a função que implementa o trait
-    /// req: a request em questão
-    /// res: referência exclusiva à response
-    /// 'a o futuro só é válido enquanto houver a response
+
+    /// "Chama" a função
+    /// é necessário usar o .await no BoxFuture, ou ela não executará
     fn call(&'_ self, req: Request, res: Response, params: Params) -> BoxFuture<'_, Result<Response, StatusCode>>;
 }
 
@@ -22,18 +37,23 @@ impl<F, Fut> FnHandler for F
 where
     F: Fn(Request, Response, Params) -> Fut + Send + Sync + 'static,
     Fut: Future<Output = Result<Response, StatusCode>> + Send + Sync + 'static
-    // F: for<'a> Fn(Request, &'a mut Response, Params) -> BoxFuture<'a, Result<StatusCode>> + 'static + Send + Sync,
 {
+    /// Executa a função passada e retorna seu Futuro
+    //  Não podemos declarar funções async dentro de traits,
+    //  então é preciso dar .await no BoxFuture
     fn call(&'_ self, req: Request, res: Response, params: Params) -> BoxFuture<'_, Result<Response, StatusCode>> {
         self(req, res, params).boxed()
     }
 }
 
+/// Trait implementado para funções com a seguinte assinatura:
+/// ```rust 
+/// async fn() -> Response
+/// ```
 pub trait FallbackHandler: Send + Sync {
-    /// self: Referência para a função que implementa o trait
-    /// req: a request em questão
-    /// res: referência exclusiva à response
-    /// 'a o futuro só é válido enquanto houver a response
+    
+    /// "Chama" a função
+    /// é necessário usar o .await no BoxFuture, ou ela não executará
     fn call(&'_ self) -> BoxFuture<'_, Response>;    
 }
 
@@ -44,7 +64,7 @@ where
 {
     /// Executa a função passada e retorna seu Futuro
     //  Não podemos declarar funções async dentro de traits,
-    //  então o futuro terá que ser await na implementação
+    //  então é preciso dar .await no BoxFuture
     fn call(&'_ self) -> BoxFuture<'_, Response> {
         self().boxed()
     }

@@ -1,8 +1,9 @@
 use std::collections::HashMap;
 
-//  Eu iria colocar uma variante de enum para cada tipo de header
-//  mas isso seria quase inútil nessa aplicação
-//  aqui jáz o resto de código que sobrou dessa efêmera ideia
+//  Considerei criar um enum para cada variante de header, 
+//  mas não tenho certeza sobre o quanto isso seria útil
+//  fica aqui uma approach mais naive, mas que cumpre o objetivo
+/// Struct que permite acesso e manipulação de headers http
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct  Header {
     headers: HashMap<String, String>,
@@ -10,7 +11,7 @@ pub struct  Header {
 
 impl Header {
 
-    /// Retorna um vec de strings, cada string é um header
+    /// Cria uma instância de header
     pub fn new() -> Header {
 
         let hash: HashMap<String, String> = HashMap::new();
@@ -18,12 +19,13 @@ impl Header {
         return Header { headers: hash };
     }
 
-    //  Adiciona um único header
+    //  Adiciona um header à struct
     pub fn add_header<T: ToString, U: ToString>(&mut self, field: T, value: U) {
         self.headers.insert(field.to_string(),value.to_string());
     }
 
-    pub fn get_header_value(&self, field: &str) -> Option<String> {
+    /// Retorna o valor de um header
+    pub fn get_header(&self, field: &str) -> Option<String> {
         return match self.headers.get(field).cloned() {
             Some(s) => Some(s.trim().to_string()),
             None => None,
@@ -31,6 +33,7 @@ impl Header {
         
     }
 
+    /// Remove o header da struct
     pub fn remove_header(&mut self, field: &str) {
         self.headers.remove(field);
     }
@@ -40,12 +43,14 @@ impl Header {
     }
 }
 
+// Implementação do trait From<&str> para Header
 impl From<&str> for Header {
     fn from(value: &str) -> Self {
         let mut header = Header::new();
 
-        //  Separa 's' por linhas, depois
-        //  separa cada linha por ':', depois
+        //  Separa 's' em linhas, depois
+        //  separa cada linha no ':', 
+        //  resultado: ("Content-Length", "123")
         let parts: Vec<(&str, &str)> =  value.split("\r\n").map(|value| value.split_once(": ").unwrap_or(("", "") ) ).collect();
 
         for part in parts {
@@ -58,8 +63,11 @@ impl From<&str> for Header {
     }
 }
 
+// Implementação do trait ToString para header
 impl ToString for Header {
     fn to_string(&self) -> String {
+        //  itera sobre os elementod de self.headers, concatenando cada par no estilo padrão para ser enviado
+        //  resultado: "Content-Length: 123"
         return self.headers.iter().map(|(s1, s2)| format!("{}: {}\r\n", s1, s2).to_string()).collect()
     }
 }

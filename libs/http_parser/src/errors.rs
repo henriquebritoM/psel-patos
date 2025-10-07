@@ -1,7 +1,7 @@
 use thiserror::Error;
 
 /// Os tipos de erros que podem acontecer durante o parsing
-/// de um &[u8] para Request e Response
+/// de um ```&[u8]``` para Request e Response. <br>
 /// todos irrecuperáveis
 #[derive(Debug, Error, PartialEq, Eq, Clone)]
 pub enum ParseErr {
