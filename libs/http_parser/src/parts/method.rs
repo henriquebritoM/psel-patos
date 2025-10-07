@@ -18,25 +18,25 @@ pub enum Method {
     CONNECT
 }
 
-/// Implementação do trait FromStr para Method
-/// Transforma uma &str em um Method
+// Implementação do trait FromStr para Method
+// Transforma uma &str em um Method
 impl FromStr for Method{
     type Err = ParseErr;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
     
-        use Method::*;
+        use Method as M;
 
         let method = match s {
-            "GET" => GET,
-            "HEAD" => HEAD,
-            "OPTIONS" => OPTIONS,
-            "TRACE" => TRACE,
-            "PUT" => PUT,
-            "DELETE" => DELETE,
-            "POST" => POST,
-            "PATCH" => PATCH,
-            "CONNECT" => CONNECT,
+            "GET" => M::GET,
+            "HEAD" => M::HEAD,
+            "OPTIONS" => M::OPTIONS,
+            "TRACE" => M::TRACE,
+            "PUT" => M::PUT,
+            "DELETE" => M::DELETE,
+            "POST" => M::POST,
+            "PATCH" => M::PATCH,
+            "CONNECT" => M::CONNECT,
             _ => return Err(ParseErr::BadMethod(format!("\"{}\"", s))) 
         };
 
@@ -44,22 +44,22 @@ impl FromStr for Method{
     }
 }
 
-/// Implementação do trait ToString para Method
-/// Transforma um Method em String
+// Implementação do trait ToString para Method
+// Transforma um Method em String
 impl ToString for Method {
     fn to_string(&self) -> String {
-        use Method::*;
+        use Method as M;
 
         return match self {
-            GET => "GET",
-            HEAD => "HEAD",
-            OPTIONS => "OPTIONS",
-            TRACE => "TRACE",
-            PUT => "PUT",
-            DELETE => "DELETE",
-            POST => "POST",
-            PATCH => "PATCH",
-            CONNECT => "CONNECT",
+            M::GET => "GET",
+            M::HEAD => "HEAD",
+            M::OPTIONS => "OPTIONS",
+            M::TRACE => "TRACE",
+            M::PUT => "PUT",
+            M::DELETE => "DELETE",
+            M::POST => "POST",
+            M::PATCH => "PATCH",
+            M::CONNECT => "CONNECT",
         }.to_string();
     }
 }

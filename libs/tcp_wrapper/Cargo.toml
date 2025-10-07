@@ -5,3 +5,4 @@ edition = "2024"
 
 [dependencies]
 http_parser = { version = "0.1.0", path = "../http_parser" }
+tokio = { version = "1.47.1", features = ["io-util", "macros", "net", "rt"] }

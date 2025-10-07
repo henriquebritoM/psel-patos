@@ -1,0 +1,54 @@
+use std::collections::HashMap;
+use tokio::net::{TcpListener, ToSocketAddrs};
+
+use matchit::Router;
+
+use crate::{server::{fn_handler::{BoxFallbackHandler, BoxHandler},server_builder::ServerBuilder, server_data::ServerData, stream_handler::ConectionHandler}, Params};
+
+pub struct Server {
+    listener: TcpListener,
+    data: &'static ServerData,
+}
+
+//  Bloco de setters e getters
+impl Server {
+    pub async fn init<A: ToSocketAddrs>(addr: A) -> ServerBuilder {
+        //  tcp listener para o servidor
+        let listener = TcpListener::bind(addr).await.expect("Não foi possível conectar-se a porta");
+        return ServerBuilder::create(listener);
+    }
+
+    // Torna apenas uma função publica para a crate, ao invés de tornar todos os campos de Server
+    pub(crate) fn create(listener: TcpListener, router: Router<(BoxHandler, Params)>, fallbacks: HashMap<u16, BoxFallbackHandler>) -> Server {
+        return Server { listener, data: ServerData::create(router, fallbacks) };
+    }
+
+    pub fn get_stream(&mut self) -> &mut TcpListener {
+        return &mut self.listener;
+    }
+    // pub fn keep_alive(&mut self, keep_alive: bool) {
+    //     self.keep_alive = keep_alive;
+    //     // return req.headers.get_header_value("Connection") == Some("keep-alive".to_owned());
+    // }
+}
+
+impl Server {
+    
+    /// Liga o servidor. <br>
+    /// Toma a ownership de self para evitar que os usuários da
+    /// crate façam coisas bizarras
+    pub async fn run(self) {
+
+        //  Aceita diversos clients
+        loop {
+            let Ok((stream, _)) = self.listener.accept().await else {
+                //  Ignora conexões falhas
+                println!("Erro ao conectar-se a stream");
+                continue;
+            };
+            let data = self.data;
+            tokio::task::spawn(async move {ConectionHandler::handle(data, stream).await});
+
+        }
+    }
+}

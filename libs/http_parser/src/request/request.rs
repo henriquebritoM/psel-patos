@@ -3,8 +3,8 @@ use std::str::FromStr;
 use crate::errors::{ParseErr};
 use crate::{Header, Method, Protocol};
 
-/// Struct para desmembrar uma request http padrão
-///
+/// Struct que permite parsing, acesso e manipulação de 
+/// requests http
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Request {
     pub method: Method,
@@ -14,8 +14,8 @@ pub struct Request {
     pub body: Vec<u8>,      //  Um vetor de u8, pois pode conter dados em binário, não só em UTF-8
 }
 
-/// Implementação do trait FromStr para Request
-/// Transforma uma &str em um Request
+// Implementação do trait FromStr para Request
+// Transforma uma &str em um Request
 impl TryFrom<&[u8]> for Request {
     type Error = ParseErr;
 
@@ -40,46 +40,78 @@ impl TryFrom<&[u8]> for Request {
 }
 
 impl Request {
+    /// Retorna uma nova instância de Request
+    /// por padrão incializada como
+    /// "GET / HTTP/1.1"
     pub fn new() -> Request {
-        return Request { 
+        let mut r = Request { 
             method: Method::GET,
             path: "/".to_string(),
-            protocol:Protocol::Http11,
+            protocol:Protocol::HTTP11,
             headers: Header::new(),
             body: Vec::new()
-        }
+        };
+
+        r.add_header("Content-Length", 0);
+        r
     }
 
-    pub fn method(mut self, m: Method) -> Request {
+    /// Shorthand para fechar a conexão. <br>
+    /// Streams, por padrão, ficam abertar até que o client
+    /// explicite o fechamento
+    pub fn close(&mut self) {   
+        self.headers.add_header("Connection", "close");
+    }
+
+    /// retorna Header: Connection == close
+    pub fn closing(&self) -> bool {
+        return self.headers.get_header("Connection") == Some("close".to_owned());
+    }
+
+    /// Seta um método para a request
+    pub fn method(&mut self, m: Method) -> &mut Request {
         self.method = m;
         return self;
     }
 
-    pub fn path(mut self, p: &str) -> Request {
+    /// Seta um path para a Request
+    pub fn path(&mut self, p: &str) -> &mut Request {
         self.path = p.to_string();
         return self;
     }
 
-    pub fn protocol(mut self, p: Protocol) -> Request {
+    /// Seta um protocolo para a Request
+    pub fn protocol(&mut self, p: Protocol) -> &mut Request {
         self.protocol = p;
         return self;
     }
 
-    pub fn add_header<T: ToString, U: ToString>(mut self, field: T, value: U) -> Request {
+    /// Adiciona um header à Request
+    pub fn add_header<T: ToString, U: ToString>(&mut self, field: T, value: U) -> &mut Request {
         self.headers.add_header(field, value);
         return self;
     } 
 
-    pub fn body<T: Into<Vec<u8>>>(mut self, body: T) -> Request {
+    /// Seta um body para a Request <br>
+    /// automaticamente adiciona o header
+    /// "Content-Length"
+    pub fn body<T: Into<Vec<u8>>>(&mut self, body: T) -> &mut Request {
         self.body = body.into();
         let len = self.body.len();
         self.add_header("Content-Length", len)
     }
-}
 
-impl Request {
+    //  É necessário clonar o valor, mesma approach que o pessoal 
+    //  do "derive_builder", segundo eles a perda de performance é ínfima
+    /// Controi uma instância de Request   <br>
+    /// automaticamente inclui o header "Content-Length"
+    pub fn build (&mut self) -> Request {
+        let len = self.body.len();
+        self.add_header("Content-Length", len);
+        return self.clone();    
+    }
 
-    /// Converte uma Request para bytes
+    /// Converte uma Request para um Vec<u8> (Vetor de Bytes)
     pub fn as_bytes(&self) -> Vec<u8> {
         let mut vec: Vec<u8> = Vec::with_capacity(self.body.len() + 128);
         
@@ -99,13 +131,16 @@ impl Request {
         
         return vec;
     }
+}
 
-    ///  Separa um request http em seus componentes
+//  Funções auxiliares privadas
+impl Request {
+
+    ///  Faz o parsing de uma slice de bytes
     ///  retorna um ParseErr se não for possível
     fn get_elements(request_bytes: &[u8]) -> Result<(Method, String, Protocol, Header, Vec<u8>), ParseErr> {
         use ParseErr::*;
 
-        //  Separa o body do resto da request, se não houver body, ele é inicializado vazio
         let (others, body) = Self::split_body(request_bytes);
 
         //  Separa os headers do cabeçalho principal
@@ -135,6 +170,7 @@ impl Request {
         ));
     }
     
+    ///  Separa o body do resto da request, se não houver body, ele é inicializado vazio
     fn split_body(request_bytes: &[u8]) -> (String, Vec<u8>) {
         
         let index = Self::find_body_index(request_bytes);
@@ -149,6 +185,7 @@ impl Request {
     
     }
 
+    /// Encontra o índice do body na request
     fn find_body_index(request_bytes: &[u8]) -> Option<usize> {
         for i in 0..request_bytes.len() {
             if request_bytes[i..].starts_with(b"\r\n\r\n") {return Some(i);}

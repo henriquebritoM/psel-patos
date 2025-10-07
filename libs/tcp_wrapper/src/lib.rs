@@ -1,26 +1,26 @@
-use std::{io::{ErrorKind, Read, Write}, net::TcpStream};
-
+use std::io::ErrorKind;
 use http_parser::{ParseErr, Request, Response};
+use tokio::{io::{AsyncReadExt, AsyncWriteExt}, net::TcpStream};
 
 /// Lê a stream e converte o resultado para Request <br>
 /// utiliza o header content-length para ler o body <br>
 /// **sem content-length = sem leitura do body**
 /// None significa que o outro lado desconectou
-pub fn read_request(stream: &mut TcpStream) -> Option<Result<Request, ParseErr>> {
+pub async fn read_request(stream: &mut TcpStream) -> Option<Result<Request, ParseErr>> {
 
     let mut vec: Vec<u8> = Vec::with_capacity(4096);
 
-    vec.append(&mut read_until_body(stream)? );
+    vec.append(&mut read_until_body(stream).await? );
 
     let mut req = match Request::try_from(vec.as_slice()) {
         Ok(r) => r,
         Err(e) => return Some(Err(e)),
     };
 
-    let body_len = req.headers.get_header_value("Content-Length").unwrap_or("0".to_string());
+    let body_len = req.headers.get_header("Content-Length").unwrap_or("0".to_string());
     let body_len: usize = body_len.parse().unwrap_or(0);
     
-    req.body = read_body(stream, body_len);
+    req.body = read_body(stream, body_len).await;
 
     return Some(Ok(req));
 }
@@ -28,21 +28,21 @@ pub fn read_request(stream: &mut TcpStream) -> Option<Result<Request, ParseErr>>
 /// Lê a stream e converte o resultado para Response <br>
 /// utiliza o header content-length para ler o body <br>
 /// **sem content-length = sem leitura do body**
-pub fn read_response(stream: &mut TcpStream) -> Option<Result<Response, ParseErr>> {
+pub async fn read_response(stream: &mut TcpStream) -> Option<Result<Response, ParseErr>> {
 
     let mut vec: Vec<u8> = Vec::with_capacity(4096);
 
-    vec.append(&mut read_until_body(stream)?);
+    vec.append(&mut read_until_body(stream).await?);
 
     let mut res = match Response::try_from(vec.as_slice()) {
         Ok(r) => r,
         Err(e) => return Some(Err(e)),
     };
 
-    let body_len = res.headers.get_header_value("Content-Length").unwrap_or("0".to_string());
+    let body_len = res.headers.get_header("Content-Length").unwrap_or("0".to_string());
     let body_len: usize = body_len.parse().unwrap_or(0);
     
-    res.body = read_body(stream, body_len);
+    res.body = read_body(stream, body_len).await;
 
     return Some(Ok(res));
 }
@@ -52,14 +52,14 @@ pub fn read_response(stream: &mut TcpStream) -> Option<Result<Response, ParseErr
 /// # Atenção
 /// pode ficar preso em loop se a stream não se desconectar nem tiver \r\n\r\n <br>
 /// solução: adicione um **stream.read_timeout()** antes de chamar a função
-fn read_until_body(stream: &mut TcpStream) -> Option<Vec<u8>> {
+async fn read_until_body(stream: &mut TcpStream) -> Option<Vec<u8>> {
     
     let mut vec: Vec<u8> = Vec::new();
     let mut buffer: [u8; 1] = [0; 1];
     
     loop {
 
-        match stream.read(&mut buffer) {
+        match stream.read(&mut buffer).await {
             Ok(0) => return None,                                                           //  EOF sai do loop
             Ok(_) => {},                                                                    //  Byte lido, continua execuçãos
             Err(ref e) if e.kind() == ErrorKind::Interrupted => continue,           //  Tenta novamente
@@ -73,10 +73,10 @@ fn read_until_body(stream: &mut TcpStream) -> Option<Vec<u8>> {
 
 /// Lê exatamente o número de bytes lidos,
 /// se não for possível retorna um vetor vazio
-fn read_body(stream: &mut TcpStream, len: usize) -> Vec<u8> {
+async fn read_body(stream: &mut TcpStream, len: usize) -> Vec<u8> {
     let mut vec: Vec<u8> = vec![0; len];
 
-    match stream.read_exact(&mut vec) {
+    match stream.read_exact(&mut vec).await {
         Err(_) => {vec.clear(); vec.shrink_to_fit();}       //  limpa o vetor o trunca. vec deve ficar vazio e usar a memória mínima
         Ok(_) => {},                                        //  Tudo certo, vetor foi preenchido como esperado
     };
@@ -86,13 +86,12 @@ fn read_body(stream: &mut TcpStream, len: usize) -> Vec<u8> {
 
 /// Envia um &[u8] pela stream,
 /// um erro indica que provavelmente o destinatário se desconectou
-pub fn write_stream(stream: &mut TcpStream, bytes: &[u8]) -> Result<(), ErrorKind> {
+pub async fn write_stream(stream: &mut TcpStream, bytes: &[u8]) -> Result<(), ErrorKind> {
     loop {
-        match stream.write_all(bytes) {
+        match stream.write_all(bytes).await {
             Ok(_) => return Ok(()),
             Err(e) => return Err(e.kind()),
         }
     }
 }
-
 

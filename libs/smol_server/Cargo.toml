@@ -4,6 +4,8 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
+futures = "0.3.31"
 http_parser = { version = "0.1.0", path = "../http_parser" }
 matchit = "0.8.6"
 tcp_wrapper = { version = "0.1.0", path = "../tcp_wrapper" }
+tokio = { version = "1.47.1", features = ["net", "sync"] }

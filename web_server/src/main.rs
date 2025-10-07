@@ -1,51 +1,69 @@
 use std::{net::SocketAddr, path::Path};
 use http_parser::{Method, Request, Response, StatusCode};
 use json_parser::retrieve;
-use smol_server::{Client, Params, Server};
+use smol_server::{Client, Params, Server, ServerBuilder};
 
-fn main() {
+use crate::erros_handlers::{bad_request, http_not_supported, not_allowed, not_found, server_error};
+
+mod erros_handlers;
+
+#[tokio::main]
+async fn main() {
     println!("starting reverse proxy");
 
-    let mut web_server = Server::init("localhost:8080");
-    let app_server = Client::init(get_addr()).expect("Não foi possível conectar-se ao app server");
+    let web_server = server_init().await;
 
-    init(&mut web_server);
-    web_server.add_api("app", app_server);
-
-    web_server.run();
+    web_server.run().await;
 }
 
-fn init(server: &mut Server) {
-    server.add_fun(Method::GET, "/", redirect_to_index);
-    server.add_fun(Method::GET, "/pages/{*item}", get_item);
-    server.add_fun(Method::POST, "/files/{*item}", post_item);
-    server.add_fun(Method::GET, "/files", list_files);
-    // server.add_fun(Method::GET, "/pages/{ main_page/assets/js/script.js }", get_script);
+async fn server_init() -> Server {
+    let mut builder = Server::init("localhost:8080").await;
+    let app = Client::init(get_addr()).await;
+    init(&mut builder, app);
+    return builder.build();
 }
 
-fn redirect_to_index(_req: Request, res: &mut Response, _params: Params) -> Result<(), StatusCode> {
+fn init(builder: &mut ServerBuilder, app: Option<Client>) {
+    use Method::*;
+    use StatusCode::*;
+
+    builder.add_fun(GET, "/", redirect_to_index);
+    builder.add_fun(GET, "/pages/{*item}", get_item);
+    builder.add_fun(POST, "/files/{*item}", post_item);
+    builder.add_fun(GET, "/files", list_files);
+
+    builder.add_fallback_fun(NotFound, not_found);
+    builder.add_fallback_fun(MethodNotAllowed, not_allowed);
+    builder.add_fallback_fun(BadRequest, bad_request);
+    builder.add_fallback_fun(HttpVersionNotSupported, http_not_supported);
+    builder.add_fallback_fun(InternalServerError, server_error);
+
+    if let Some(app) = app {
+        builder.add_api("app", app);
+    } else {
+        eprintln!("Não foi possível conectar-se ao app server");
+    }
+}
+
+async fn redirect_to_index(_req: Request, mut res: Response, _params: Params) -> Result<Response, StatusCode> {
     res.status = StatusCode::TemporaryRedirect;
     res.headers.add_header("Location", "/pages/main_page/index.html");
-    Ok(())
+    Ok(res)
 }
 
-fn get_item(req: Request, res: &mut Response, params: Params) -> Result<(), StatusCode> {
-    *res = params.api_fetch("app", req);
-    Ok(())
+async fn get_item(req: Request, mut res: Response, params: Params) -> Result<Response, StatusCode> {
+    res = params.api_fetch("app", req).await;
+    Ok(res)
 }
 
-fn post_item(req: Request, res: &mut Response, params: Params) -> Result<(), StatusCode> {
-    println!("Recebido: {:?}", req);
-    *res = params.api_fetch("app", req);
-    println!("enviando para o app");
-    Ok(())
+async fn post_item(req: Request, mut res: Response, params: Params) -> Result<Response, StatusCode> {
+    res = params.api_fetch("app", req).await;
+    Ok(res)
 }
 
-fn list_files(req: Request, res: &mut Response, params: Params) -> Result<(), StatusCode> {
-    println!("Recebido: {:?}", req);
-    *res = params.api_fetch("app", req);
-    println!("enviando para o app");
-    Ok(())
+async fn list_files(req: Request, mut res: Response, params: Params) -> Result<Response, StatusCode> {
+    res = params.api_fetch("app", req).await;
+    Ok(res)
 }
 
 fn get_addr() -> SocketAddr {

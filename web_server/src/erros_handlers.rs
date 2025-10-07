@@ -2,7 +2,7 @@ use std::{fs::read, path::Path};
 
 use http_parser::{Response, StatusCode};
 
-pub fn not_found() -> Response {
+pub async fn not_found() -> Response {
     let path: &Path = Path::new(r#"C:\Users\henri\prog_things\rust projects\patos_psel\pages\errors\404.html"#);
 
     match read(path) {
@@ -11,7 +11,7 @@ pub fn not_found() -> Response {
     }
 }
 
-pub fn not_allowed() -> Response {
+pub async fn not_allowed() -> Response {
     let path: &Path = Path::new(r#"C:\Users\henri\prog_things\rust projects\patos_psel\pages\errors\405.html"#);
 
     match read(path) {
@@ -20,7 +20,7 @@ pub fn not_allowed() -> Response {
     }   
 }
 
-pub fn bad_request() -> Response {
+pub async fn bad_request() -> Response {
     let path: &Path = Path::new(r#"C:\Users\henri\prog_things\rust projects\patos_psel\pages\errors\400.html"#);
 
     match read(path) {
@@ -29,7 +29,7 @@ pub fn bad_request() -> Response {
     }   
 }
 
-pub fn server_error() -> Response {
+pub async fn server_error() -> Response {
     let path: &Path = Path::new(r#"C:\Users\henri\prog_things\rust projects\patos_psel\pages\errors\500.html"#);
 
     match read(path) {
@@ -38,7 +38,7 @@ pub fn server_error() -> Response {
     }   
 }
 
-pub fn http_not_supported() -> Response {
+pub async fn http_not_supported() -> Response {
     let path: &Path = Path::new(r#"C:\Users\henri\prog_things\rust projects\patos_psel\pages\errors\505.html"#);
 
     match read(path) {

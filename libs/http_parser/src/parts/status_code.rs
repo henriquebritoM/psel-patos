@@ -3,10 +3,8 @@ use strum::{EnumIter, IntoEnumIterator};
 
 use crate::ParseErr;
 
-/// As variações mais usuais de status code <br>
-/// contém alguns dos principais porque eu não quero <br>
-/// passar 1 hora escrevendo variantes <br>
-/// fora que isso já me serve muito bem 
+/// Enum com as principais variantes de 
+/// status code
 #[derive(Debug, PartialEq, Eq, Clone, Copy, EnumIter)]
 #[repr(u16)]
 pub enum StatusCode {
@@ -82,6 +80,7 @@ pub enum StatusCode {
 
 impl StatusCode {
 
+    /// Cria um status code a partir de uma str
     pub fn from_str(s: &str) -> Result<StatusCode, ParseErr> {
         let code: u16 = s.parse().unwrap_or(0);
         if code == 0 {return Err(ParseErr::BadStatusCode(s.to_string()));}
@@ -99,85 +98,87 @@ impl StatusCode {
     }
 
     /// retorna a mensagem descritiva do status code
-    fn get_text(&self) -> &'static str {    
-        use StatusCode::*;
+    pub fn get_text(&self) -> &'static str {    
+        use StatusCode as SC;
         return match self {
             //  1xx
-            Continue => "Continue",
-            SwitchingProtocols => "Switching Protocols",
-            Processing => "Processing",
-            EarlyHints => "EarlyHints",
+            SC::Continue => "Continue",
+            SC::SwitchingProtocols => "Switching Protocols",
+            SC::Processing => "Processing",
+            SC::EarlyHints => "EarlyHints",
 
             // 2xx
-            OK => "OK",
-            Created => "Created",
-            NoContent => "No Content",
-            ResetContent => "Reset Content",
-            PartialContent => "Partial Content",
-            MultiStatus => "Multi-Status",
-            AlreadyReported => "Already Reported",
-            ImUsed => "IM Used",
+            SC::OK => "OK",
+            SC::Created => "Created",
+            SC::NoContent => "No Content",
+            SC::ResetContent => "Reset Content",
+            SC::PartialContent => "Partial Content",
+            SC::MultiStatus => "Multi-Status",
+            SC::AlreadyReported => "Already Reported",
+            SC::ImUsed => "IM Used",
 
             // 3xx
-            MultipleChoices => "Multiple Choices",
-            MovedPermanently => "Moved Permanently",
-            Found => "Found",
-            SeeOther => "See Other",
-            NotModified => "Not Modified",
-            TemporaryRedirect => "Temporary Redirect",
-            PermanentRedirect => "Permanent Redirect",
+            SC::MultipleChoices => "Multiple Choices",
+            SC::MovedPermanently => "Moved Permanently",
+            SC::Found => "Found",
+            SC::SeeOther => "See Other",
+            SC::NotModified => "Not Modified",
+            SC::TemporaryRedirect => "Temporary Redirect",
+            SC::PermanentRedirect => "Permanent Redirect",
 
             //  4xx
-            BadRequest => "Bad Request",
-            Unauthorized => "Unauthorized",
-            PaymentRequired => "Payment Required",
-            Forbidden => "Forbidden",
-            NotFound => "Not Found",
-            MethodNotAllowed => "Method Not Allowed",
-            NotAcceptable => "Not Acceptable",
-            ProxyAuthenticationRequired => "Proxy Authentication Required",
-            RequestTimeout => "Request Timeout",
-            Conflict => "Conflict",
-            Gone => "Gone",
-            LengthRequired => "Length Required",
-            PreconditionFailed => "Precondition Failed",
-            UriTooLong => "URI Too Long",
-            UnsupportedMediaType => "Unsupported Media Type",
-            RangeNotSatisfiable => "Range Not Satisfiable",
-            ExpectationFailed => "Expectation Failed",
-            ImATeapot => "I'm a teapot",
-            MisdirectedRequest => "Misdirected Request",
-            UnprocessableContent => "Unprocessable Content",
-            Locked => "Locked",
-            FailedDependency => "Failed Dependency",
-            TooEarly => "Too Early",
-            UpgradeRequired => "Upgrade Required",
-            PreconditionRequired => "Precondition Required",
-            TooManyRequests => "Too Many Requests",
-            RequestHeaderFieldsTooLarge => "Request Header Fields Too Large",
-            UnavailableForLegalReasons => "Unavailable For Legal Reasons",
+            SC::BadRequest => "Bad Request",
+            SC::Unauthorized => "Unauthorized",
+            SC::PaymentRequired => "Payment Required",
+            SC::Forbidden => "Forbidden",
+            SC::NotFound => "Not Found",
+            SC::MethodNotAllowed => "Method Not Allowed",
+            SC::NotAcceptable => "Not Acceptable",
+            SC::ProxyAuthenticationRequired => "Proxy Authentication Required",
+            SC::RequestTimeout => "Request Timeout",
+            SC::Conflict => "Conflict",
+            SC::Gone => "Gone",
+            SC::LengthRequired => "Length Required",
+            SC::PreconditionFailed => "Precondition Failed",
+            SC::UriTooLong => "URI Too Long",
+            SC::UnsupportedMediaType => "Unsupported Media Type",
+            SC::RangeNotSatisfiable => "Range Not Satisfiable",
+            SC::ExpectationFailed => "Expectation Failed",
+            SC::ImATeapot => "I'm a teapot",
+            SC::MisdirectedRequest => "Misdirected Request",
+            SC::UnprocessableContent => "Unprocessable Content",
+            SC::Locked => "Locked",
+            SC::FailedDependency => "Failed Dependency",
+            SC::TooEarly => "Too Early",
+            SC::UpgradeRequired => "Upgrade Required",
+            SC::PreconditionRequired => "Precondition Required",
+            SC::TooManyRequests => "Too Many Requests",
+            SC::RequestHeaderFieldsTooLarge => "Request Header Fields Too Large",
+            SC::UnavailableForLegalReasons => "Unavailable For Legal Reasons",
 
             //  5xx
-            InternalServerError => "Internal Server Error",
-            NotImplemented => "Not Implemented",
-            BadGateway => "Bad Gateway",
-            ServiceUnavailable => "Service Unavailable",
-            GatewayTimeout => "Gateway Timeout",
-            HttpVersionNotSupported => "HTTP Version Not Supported",
-            VariantAlsoNegotiates => "Variant Also Negotiates",
-            InsufficientStorage => "Insufficient Storage",
-            LoopDetected => "Loop Detected",
-            NotExtended => "Not Extended",
-            NetworkAuthenticationRequired => "Network Authentication Required",
+            SC::InternalServerError => "Internal Server Error",
+            SC::NotImplemented => "Not Implemented",
+            SC::BadGateway => "Bad Gateway",
+            SC::ServiceUnavailable => "Service Unavailable",
+            SC::GatewayTimeout => "Gateway Timeout",
+            SC::HttpVersionNotSupported => "HTTP Version Not Supported",
+            SC::VariantAlsoNegotiates => "Variant Also Negotiates",
+            SC::InsufficientStorage => "Insufficient Storage",
+            SC::LoopDetected => "Loop Detected",
+            SC::NotExtended => "Not Extended",
+            SC::NetworkAuthenticationRequired => "Network Authentication Required",
         }
     }
 
+    /// Status code maiores ou iguais a 400 são considerados erros
     pub fn is_err(&self) -> bool {
-        return self.get_code() >= 300;
+        return self.get_code() >= 400;
     }
 
 }
 
+//  Implementação do trait ToString para StatusCode
 impl ToString for StatusCode {
     fn to_string(&self) -> String {
         return format!("{} {}", self.get_code(), self.get_text());
