@@ -1,28 +1,26 @@
 # PATOS PSEL
 
-# Sem vibe-coding !!!
-
 Linguagem escolhida: Rust
 Motivo: É a linguagem em que eu uso a mais tempo e me sinto mais a vontade usando 
 
 # Como usar:
 
-- Linux 
-    Na root, digite ```./start.sh``` no terminal. Digite ```cntr + c``` para parar a execução
+- Linux: <br>
+    Na root, digite ```./start.sh``` no terminal. Digite ```cntr + c``` para parar a execução.
 
-- Windows 
-    Abra dois terminais, digite ```cargo run --release --bin app_server``` no primeiro e ```cargo run --release --bin web_server``` no outro
-    Para parar a execução, digite ```cntr + c``` em ambos terminais
+- Windows: <br>
+    Abra dois terminais, digite ```cargo run --release --bin app_server``` no primeiro e ```cargo run --release --bin web_server``` no outro. 
+    Para parar a execução, digite ```cntr + c``` em ambos terminais.
 
 - No navegador, digite a URL ```localhost:8080```
 
-O projeto possui alguns testes básicos, que garantem (até certo ponto) o funcionamento correto. Para realizar os testes, digite ```cargo test``` na root 
+O projeto possui alguns testes básicos, que garantem (até certo ponto) o funcionamento correto. Para realizar os testes, digite ```cargo test``` na root .
 
 A maioria dos erros é tratado e resulta em um ```BadRequest``` ou ```InternalServerError```,
-mas há algumas situações onde o programa pode dar panic!() (acredito que apenas nos erros irrecuperáveis)
+mas há algumas situações onde o programa pode dar panic!() (acredito que apenas nos erros irrecuperáveis).
 
 Como todo programa em rust, há um memory safety decente, sem dangling pointers e sem data races,
-todos dados compartilhados entre threads possuem o lifetime ```'static``` e são do tipo read-only
+todos dados compartilhados entre threads possuem o lifetime ```'static``` e são do tipo read-only.
 
 # Versionamento:
 
@@ -37,7 +35,7 @@ alterado para funcionar com as mudanças). Foi implementado o processamento ass�
     -   tcp_wrapper
     -   smol_server <br>
 a última também foi adaptada para funcionar com multithreading, embora só funcione quando executada pela
-runtime multithread da crate Tokio
+runtime multithread da crate Tokio.
 
 # Minhas conclusões:
 
@@ -53,7 +51,7 @@ ficar reinventando a roda (e sua roda geralmente é pior) e eu agradeço as vár
 
 # Fontes:
 
-Algumas das fontes que eu usei para pesquisa são
+Algumas das fontes que eu usei para pesquisa são:
 
 - [Introdução ao HTTP-Mozilla](https://developer.mozilla.org/en-US/docs/Web/HTTP/Guides/Messages)
 - [O livro de rust](https://doc.rust-lang.org/rust-by-example/index.html)
