@@ -60,7 +60,8 @@ async fn list_files(req: Request, mut res: Response, params: Params) -> Result<R
 
 /// Retorna o socket em que o App está rodando
 fn get_addr() -> SocketAddr {
-    let json_path: &Path = Path::new("../socket_addr.json");
+
+    let json_path: &Path = Path::new("./socket_addr.json");
 
     let addr = retrieve(json_path).expect("Nenhum socket para conectar-se ao app server");
     return addr;

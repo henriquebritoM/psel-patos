@@ -6,7 +6,7 @@ use smol_server::Params;
 /// Retorna o item especificado pelo path
 pub async fn get_item(req: Request, mut res: Response, _params: Params) -> Result<Response, StatusCode> {
     //  formata o caminho
-    let path_buff: PathBuf = PathBuf::from(r"..".to_string() + &req.path);
+    let path_buff: PathBuf = PathBuf::from(r"./".to_string() + &req.path);
     let path: &Path = Path::new(&path_buff);
 
     let body = read(path).ok().ok_or(StatusCode::NotFound)?;
@@ -23,7 +23,7 @@ pub async fn get_item(req: Request, mut res: Response, _params: Params) -> Resul
 /// Cria um novo arquivo
 pub async fn post_item(req: Request, mut res: Response, _params: Params) -> Result<Response, StatusCode> {
 
-    let path_buff: PathBuf = PathBuf::from(r"..".to_string() + &req.path);
+    let path_buff: PathBuf = PathBuf::from(r"./".to_string() + &req.path);
     let path: &Path = Path::new(&path_buff);
 
     if path.exists() {return Err(StatusCode::Conflict);}
@@ -39,7 +39,7 @@ pub async fn list_files(_req: Request, mut res: Response, _params: Params) -> Re
 
     let mut file_names: Vec<String> = Vec::new();
 
-    if let Ok(paths) = std::fs::read_dir("../files") {
+    if let Ok(paths) = std::fs::read_dir("./files") {
         for path in paths {
             if let Ok(f) = path {
                 file_names.push(f.file_name().to_string_lossy().to_string());

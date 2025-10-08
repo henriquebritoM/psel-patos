@@ -21,7 +21,7 @@ async fn main() {
 ///  Salva o endereço em um .json para o proxy conectar-se
 fn save_addr(addr: SocketAddr) {
 
-    let json_path: &Path = Path::new("../socket_addr.json");
+    let json_path: &Path = Path::new("./socket_addr.json");
 
     //  salva a porta do listener no json para o web_server conectar futuramente
     //  falha se der um erro horrendo, irrecuperável, não ser possível salvar no arquivo
