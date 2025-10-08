@@ -40,8 +40,12 @@ impl ConectionHandler {
 
             keep_alive = keep_alive && !response.closing();
 
-            let Ok(_) = write_stream(&mut self.stream, &response.as_bytes()).await else {return;};    //  Outro lado se desconectou, aborto
+            if write_stream(&mut self.stream, &response.as_bytes()).await.is_err() {
+                keep_alive = false;
+            } //  Outro lado se desconectou, aborto
         }
+
+        return;
     }
     
     /// Processa a Request e gera uma response apropriada
@@ -49,7 +53,7 @@ impl ConectionHandler {
 
         let key = ServerData::get_router_path(request.method, &request.path);
         let Some((func, params)) = self.data.get_func(&key) else {
-            eprintln!("Função não encontrada, rodando fallback");
+            eprintln!("Função não encontrada para {}, rodando fallback", request.path);
             return self.run_fallback(StatusCode::NotFound).await;
         };
 

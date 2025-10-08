@@ -3,23 +3,24 @@ use std::{fs::{read, write}, path::{Path, PathBuf}};
 use http_parser::{Request, Response, StatusCode};
 use smol_server::Params;
 
+/// Retorna o item especificado pelo path
 pub async fn get_item(req: Request, mut res: Response, _params: Params) -> Result<Response, StatusCode> {
     //  formata o caminho
     let path_buff: PathBuf = PathBuf::from(r"..".to_string() + &req.path);
     let path: &Path = Path::new(&path_buff);
-    println!("buscando em {:?}", path_buff);
 
     let body = read(path).ok().ok_or(StatusCode::NotFound)?;
     
     res.status(StatusCode::OK).body(body);
 
-    if let Some(ct) = req.headers.get_header_value("Content-Type") {
+    if let Some(ct) = req.headers.get_header("Content-Type") {
         res.add_header("Content-Type", ct);
     }
 
     return Ok(res);
 }
 
+/// Cria um novo arquivo
 pub async fn post_item(req: Request, mut res: Response, _params: Params) -> Result<Response, StatusCode> {
 
     let path_buff: PathBuf = PathBuf::from(r"..".to_string() + &req.path);
@@ -33,6 +34,7 @@ pub async fn post_item(req: Request, mut res: Response, _params: Params) -> Resu
     return Ok(res);
 }
 
+/// Lista todos os arquivos disponíveis
 pub async fn list_files(_req: Request, mut res: Response, _params: Params) -> Result<Response, StatusCode> {
 
     let mut file_names: Vec<String> = Vec::new();

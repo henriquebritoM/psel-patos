@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use indexmap::IndexMap;
 
 //  Considerei criar um enum para cada variante de header, 
 //  mas não tenho certeza sobre o quanto isso seria útil
@@ -6,7 +6,7 @@ use std::collections::HashMap;
 /// Struct que permite acesso e manipulação de headers http
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct  Header {
-    headers: HashMap<String, String>,
+    headers: IndexMap<String, String>,   //    HashMap que preserva ordem de inserção
 }
 
 impl Header {
@@ -14,14 +14,14 @@ impl Header {
     /// Cria uma instância de header
     pub fn new() -> Header {
 
-        let hash: HashMap<String, String> = HashMap::new();
+        let hash: IndexMap<String, String> = IndexMap::new();
 
         return Header { headers: hash };
     }
 
     //  Adiciona um header à struct
     pub fn add_header<T: ToString, U: ToString>(&mut self, field: T, value: U) {
-        self.headers.insert(field.to_string(),value.to_string());
+        self.headers.insert(field.to_string(), value.to_string());
     }
 
     /// Retorna o valor de um header
@@ -35,7 +35,7 @@ impl Header {
 
     /// Remove o header da struct
     pub fn remove_header(&mut self, field: &str) {
-        self.headers.remove(field);
+        self.headers.shift_remove(field);
     }
 
     pub fn is_empty(&self) -> bool {
@@ -48,13 +48,15 @@ impl From<&str> for Header {
     fn from(value: &str) -> Self {
         let mut header = Header::new();
 
+        let value = value.trim_ascii();
+
         //  Separa 's' em linhas, depois
         //  separa cada linha no ':', 
         //  resultado: ("Content-Length", "123")
         let parts: Vec<(&str, &str)> =  value.split("\r\n").map(|value| value.split_once(": ").unwrap_or(("", "") ) ).collect();
 
         for part in parts {
-            if part.0.is_empty() {continue;}    //  Ignoramos as que não tem nada no primeiro argumento
+            if part.0.is_empty() || part.1.is_empty() {continue;}    //  Ignoramos as que não tem nada no primeiro argumento
             
             header.add_header(part.0, part.1);
         }
@@ -67,7 +69,7 @@ impl From<&str> for Header {
 impl ToString for Header {
     fn to_string(&self) -> String {
         //  itera sobre os elementod de self.headers, concatenando cada par no estilo padrão para ser enviado
-        //  resultado: "Content-Length: 123"
+        //  resultado: "Content-Length: 123\r\n"
         return self.headers.iter().map(|(s1, s2)| format!("{}: {}\r\n", s1, s2).to_string()).collect()
     }
 }

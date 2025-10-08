@@ -1,7 +1,6 @@
 #!/bin/bash
 
-cd "$(dirname "$0")/app_server" || exit
-cargo run --release
+cargo build --release
 
-cd "$(dirname "$0")/web_server" || exit
-cargo run --release
+./target/release/app_server.d
+./target/release/web_server.d

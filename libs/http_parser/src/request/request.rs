@@ -97,7 +97,7 @@ impl Request {
     /// "Content-Length"
     pub fn body<T: Into<Vec<u8>>>(&mut self, body: T) -> &mut Request {
         self.body = body.into();
-        let len = self.body.len();
+        let len = self.body.len();  //  +4 se referem ao \r\n\r\n após o body
         self.add_header("Content-Length", len)
     }
 
@@ -106,7 +106,7 @@ impl Request {
     /// Controi uma instância de Request   <br>
     /// automaticamente inclui o header "Content-Length"
     pub fn build (&mut self) -> Request {
-        let len = self.body.len();
+        let len = self.body.len();  //  +4 se referem ao \r\n\r\n após o body
         self.add_header("Content-Length", len);
         return self.clone();    
     }
@@ -126,7 +126,7 @@ impl Request {
         
         if !self.body.is_empty() {
             vec.append(&mut self.body.clone());
-            vec.append(&mut b"\r\n".to_vec());
+            // vec.append(&mut b"\r\n\r\n".to_vec());
         }
         
         return vec;

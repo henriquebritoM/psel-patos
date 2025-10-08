@@ -122,7 +122,7 @@ impl Response {
         
         if !self.body.is_empty() {
             vec.append(&mut self.body.clone());
-            vec.append(&mut b"\r\n".to_vec());
+            // vec.append(&mut b"\r\n\r\n".to_vec());
         }
         
         return vec;
@@ -157,7 +157,7 @@ impl Response {
         let l10: &'static str= r#"</body>"#;
         let l11: &'static str= r#"</html>"#;
 
-        let concat: &str = &format!("{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n", l1, l2, l3, l4, l5, l6, l7, l8, l9, l10, l11);
+        let concat: &str = &format!("{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}", l1, l2, l3, l4, l5, l6, l7, l8, l9, l10, l11);
 
         let mut response: Response = 
             Response::new()
@@ -217,7 +217,7 @@ impl Response {
     /// Encontra o índice do body na request
     fn find_body_index(response_bytes: &[u8]) -> Option<usize> {
         for i in 0..response_bytes.len() {
-            if response_bytes[i..].starts_with(b"\r\n\r\n") {return Some(i);}
+            if response_bytes[i..].starts_with(b"\r\n\r\n") {return Some(i+4);}
         }
         return None;
     }
