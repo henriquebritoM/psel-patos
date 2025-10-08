@@ -1,17 +1,47 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="pt-BR">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>INDEX</title>
-    
-    <link rel="stylesheet" href="/pages/main_page/assets/css/style.css">
+    <title>Servidor de Arquivos</title>
+    <link rel="stylesheet" href="./assets/css/style.css">
 </head>
+
 <body>
-    <h1>HELLO FROM INDEX.HTML</h1>
 
-    <img src="/pages/main_page/assets/image.jpg" alt="Nier wallpaper">
+    <section class="container">
+        <div id="topo">
+            <h1>Servidor de arquivos</h1>
+            <p>
+                Faça dowload ou upload de arquivos ! YaY
+            </p>
+        </div>
 
-    <script src="/pages/main_page/assets/js/script.js"></script>
+        <div id="forms enviar">
+            <form action="", id="enviar">
+                <label for="enviar file">Escolha um arquivo para enviar</label><br>
+                <input type="file" id="enviar-file"><br>
+                <button>enviar</button>
+            </form>
+        </div>
+        
+        <div id="forms baixar">
+            <form action="", id="receber">
+                <label for="receber">Escolha um arquivo para baixar</label><br>
+                <input list="arquivos" id="receber-file">
+                <datalist id="arquivos">
+                    <!-- starts empty -->
+                </datalist><br>
+                <button>Baixar</button>
+            </form>
+        </div>
+
+    </section>
+
+    
+
+    <script src="./assets/js/main.js"></script>
 </body>
+
 </html>

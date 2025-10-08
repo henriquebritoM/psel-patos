@@ -31,8 +31,11 @@ pub async fn read_request(stream: &mut TcpStream) -> Option<Result<Request, Pars
 pub async fn read_response(stream: &mut TcpStream) -> Option<Result<Response, ParseErr>> {
 
     let mut vec: Vec<u8> = Vec::with_capacity(4096);
-
-    vec.append(&mut read_until_body(stream).await?);
+    let a = read_until_body(stream).await;
+    let Some(mut a) = a else {
+        return None;
+    };
+    vec.append(&mut a);
 
     let mut res = match Response::try_from(vec.as_slice()) {
         Ok(r) => r,
@@ -60,10 +63,10 @@ async fn read_until_body(stream: &mut TcpStream) -> Option<Vec<u8>> {
     loop {
 
         match stream.read(&mut buffer).await {
-            Ok(0) => return None,                                                           //  EOF sai do loop
+            Ok(0) => {return None},                                                           //  EOF sai do loop
             Ok(_) => {},                                                                    //  Byte lido, continua execuçãos
             Err(ref e) if e.kind() == ErrorKind::Interrupted => continue,           //  Tenta novamente
-            Err(_) => {return None;}                                                 //  Erro irrecuperável, retorna
+            Err(_) => {return None;}                                                        //  Erro irrecuperável, retorna
         };
 
         vec.push(buffer[0]);                                                                 //  Coloca o byte lido no vec
@@ -75,6 +78,7 @@ async fn read_until_body(stream: &mut TcpStream) -> Option<Vec<u8>> {
 /// se não for possível retorna um vetor vazio
 async fn read_body(stream: &mut TcpStream, len: usize) -> Vec<u8> {
     let mut vec: Vec<u8> = vec![0; len];
+    
 
     match stream.read_exact(&mut vec).await {
         Err(_) => {vec.clear(); vec.shrink_to_fit();}       //  limpa o vetor o trunca. vec deve ficar vazio e usar a memória mínima
@@ -90,7 +94,7 @@ pub async fn write_stream(stream: &mut TcpStream, bytes: &[u8]) -> Result<(), Er
     loop {
         match stream.write_all(bytes).await {
             Ok(_) => return Ok(()),
-            Err(e) => return Err(e.kind()),
+            Err(e) => return Err(e.kind())
         }
     }
 }

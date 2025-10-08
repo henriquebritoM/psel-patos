@@ -21,10 +21,20 @@ pub type BoxHandler = &'static (dyn FnHandler);
 /// Um trait object de FallbackHandler
 pub type BoxFallbackHandler = &'static (dyn FallbackHandler);
 
-
 /// Trait implementado para funções com a seguinte assinatura:
+/// 
+/// # Exemplos
+/// 
 /// ```rust 
-/// async fn(Request, Response, Param) -> Result<StatusCode, Response>
+/// # use http_parser::{Request, Response, StatusCode};
+/// # use smol_server::{Params, FnHandler};
+/// # fn is_fn_hanlder<F: FnHandler>(f: F) -> bool {true};
+/// 
+/// async fn foo(req: Request, res: Response, p: Params) -> Result<Response, StatusCode> {
+///     Err(StatusCode::NotFound)
+/// }
+/// 
+/// assert_eq!(is_fn_hanlder(foo), true);
 /// ```
 pub trait FnHandler: Send + Sync {
 
@@ -47,8 +57,18 @@ where
 }
 
 /// Trait implementado para funções com a seguinte assinatura:
+/// # Exemplos
+/// 
 /// ```rust 
-/// async fn() -> Response
+/// # use smol_server::FallbackHandler;
+/// # use http_parser::{StatusCode, Response};
+/// # fn is_fallback_hanlder<F: FallbackHandler>(f: F) -> bool {true};
+/// 
+/// async fn foo() -> Response {
+///     Response::default(StatusCode::NotFound)
+/// }
+/// 
+/// assert_eq!(is_fallback_hanlder(foo), true);
 /// ```
 pub trait FallbackHandler: Send + Sync {
     

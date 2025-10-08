@@ -41,11 +41,7 @@ impl Server {
 
         //  Aceita diversos clients
         loop {
-            let Ok((stream, _)) = self.listener.accept().await else {
-                //  Ignora conexões falhas
-                println!("Erro ao conectar-se a stream");
-                continue;
-            };
+            let Ok((stream, _)) = self.listener.accept().await else {continue;}; //  Ignora conexões falhas
             let data = self.data;
             tokio::task::spawn(async move {ConectionHandler::handle(data, stream).await});
 

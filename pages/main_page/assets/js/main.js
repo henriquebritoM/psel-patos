@@ -5,12 +5,24 @@ const formsDownload = document.querySelector('#receber')
 
 files = []
 
-function atualizaArquivosDisponiveis() {
-    const files = getFiles();
+async function atualizaArquivosDisponiveis() {
+    const files = await getFiles();
+
+    while (formsDownload.firstChild) {
+        formsDownload.removeChild(formsDownload.firstChild);
+    }
+    
+    for (let file of files) {
+        const option = document.createElement('option');
+        option.value = file;
+        option.textContent = file;
+        listaArquivos.appendChild(option);
+    }
+
     console.log(files)
 }
 
-formsUpload.addEventListener('submit', function (event) {
+formsUpload.addEventListener('submit', async function (event) {
     event.preventDefault();
 
     let input_file = formsUpload.querySelector('#enviar-file')
@@ -18,37 +30,73 @@ formsUpload.addEventListener('submit', function (event) {
     console.log(file)
 
     // manda para o backend
-    sendFile(file)
+    await sendFile(file)
 
-    if (true) atualizaArquivosDisponiveis();    //  atualiza se deu certo
+    atualizaArquivosDisponiveis();
 });
 
-formsDownload.addEventListener('submit', function (event) {
+formsDownload.addEventListener('submit', async function (event) {
     event.preventDefault();
 
-    target = formsUpload.querySelector('#receber-file')
+    let target = formsDownload.querySelector('#receber-file')
+    let file = target.value
 
+    await sendFile(file)
     // manda para o backend
 });
 
+async function getFile(fileName) {
+    let url = "http://localhost:8080/files/";
+    url += fileName;
+
+    const myHeaders = new Headers();
+    myHeaders.append("Content-Type", "application/octet-stream");
+
+    try {
+        const response = await fetch(url, {
+            method: "GET",
+            headers: myHeaders 
+        });
+
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status} ao tentar baixar ${fileName}`);
+        }
+
+        const fileBlob = await response.blob(); 
+        
+        return fileBlob; 
+
+    } catch (error) {
+        console.error("Erro ao tentar obter o arquivo:", error);
+        throw error;
+    }
+}
+
 async function getFiles() {
     const url = "http://localhost:8080/files";
-    fetch(url)
-    .then(response => response.json())
-    .then(data => {return data})
+    
+    const response = await fetch(url);
+    
+    if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+    }
+
+    const data = await response.json();
+    
+    return data;
 }
 
 async function sendFile(file) {
     let url = "http://localhost:8080/files/";
     url += file.name;
 
-    const myHeaders = new Headers();
-    myHeaders.append("Content-Type", "application/octet-stream");
-
-    fetch(url, {
+    const response = await fetch(url, {
         method: "POST",
         body: await file.arrayBuffer(),
+        headers: { "Content-Type": "application/octet-stream" }
     });
-    // .then(response => response.json())
-    // .then(data => {return data})
+    
+    if (!response.ok) {
+        throw new Error(`Upload falhou com status: ${response.status}`);
+    }
 }

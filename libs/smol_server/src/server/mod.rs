@@ -3,6 +3,7 @@ mod fn_handler;
 mod server_builder;
 mod server_data;
 mod stream_handler;
+pub use fn_handler::{FnHandler, FallbackHandler};
 pub use server::Server;
 pub use server_builder::ServerBuilder;
 pub use server_data::Params;

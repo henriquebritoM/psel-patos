@@ -41,7 +41,7 @@ impl Client {
         let response = read_response(&mut self.server_stream).await; //.expect("api se desconectou");
         return match response {
             Some(Ok(r)) => r,
-            _ => Response::default(StatusCode::InternalServerError),
+            _ => Response::default(StatusCode::Forbidden),
         }
     }
 
