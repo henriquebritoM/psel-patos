@@ -5,6 +5,8 @@ Motivo: É a linguagem em que eu uso a mais tempo e me sinto mais a vontade usan
 
 # Como usar:
 
+**É necessário ter o cargo instalado**
+
 - Linux: <br>
     Na root, digite ```./start.sh``` no terminal. Digite ```cntr + c``` para parar a execução.
 

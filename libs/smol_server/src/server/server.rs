@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::{collections::HashMap, convert::Infallible};
 use tokio::net::{TcpListener, ToSocketAddrs};
 
 use matchit::Router;
@@ -37,7 +37,8 @@ impl Server {
     /// Liga o servidor. <br>
     /// Toma a ownership de self para evitar que os usuários da
     /// crate façam coisas bizarras
-    pub async fn run(self) {
+    //  Infallible diz que a função NÃO vai retornar
+    pub async fn run(self) -> Infallible {
 
         //  Aceita diversos clients
         loop {

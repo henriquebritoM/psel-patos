@@ -6,14 +6,24 @@ use smol_server::Params;
 /// Retorna o item especificado pelo path
 pub async fn get_item(req: Request, mut res: Response, _params: Params) -> Result<Response, StatusCode> {
     //  formata o caminho
+    println!("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa");
     let path_buff: PathBuf = PathBuf::from(r"./".to_string() + &req.path);
     let path: &Path = Path::new(&path_buff);
 
     let body = read(path).ok().ok_or(StatusCode::NotFound)?;
+
+    println!("hhhhhhhhhhhhhhhhhhhhhhhhhhhhhhh");
     
     res.status(StatusCode::OK).body(body);
 
-    if let Some(ct) = req.headers.get_header("Content-Type") {
+    let content_type: Option<String> = match req.headers.get_header("Content-Type") {
+        Some(ct) => Some(ct),
+        None => get_content_type(&req).map(|s| s.to_string()),
+    };
+
+    dbg!(&content_type);
+
+    if let Some(ct) = content_type {
         res.add_header("Content-Type", ct);
     }
 
@@ -56,3 +66,20 @@ pub async fn list_files(_req: Request, mut res: Response, _params: Params) -> Re
     return Ok(res);
 }
 
+/// Retorna o content-type de uma response (se houver)
+fn get_content_type(req: &Request) -> Option<&'static str>{
+    let content_type: Option<&'static str> = req.path.rsplit_once(".")
+        .map(|(_, ext)| match ext {
+            "png"  => "image/png",
+            "jpg" | "jpeg" => "image/jpeg",
+            "gif"  => "image/gif",
+            "svg"  => "image/svg+xml",
+            "css" | "txt"  => "text/css; charset=utf-8",
+            "js"   => "application/javascript; charset=utf-8",
+            "html" => "text/html; charset=utf-8",
+            "json" => "application/json",
+            _      => "application/octet-stream",
+    }); 
+
+    return content_type;
+}

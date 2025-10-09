@@ -3,20 +3,28 @@ console.log("HELLO");
 const formsUpload = document.querySelector('#enviar')
 const formsDownload = document.querySelector('#receber')
 
-files = []
+//  cerca de metade desse cógico foi feito com ajuda de IA
+//  não manjo o bastante de js pra fazer isso sozinho não
+
+let files = []
+atualizaArquivosDisponiveis()
+console.log(files)
 
 async function atualizaArquivosDisponiveis() {
-    const files = await getFiles();
+    files = await getFiles();
+    console.log(files)
 
-    while (formsDownload.firstChild) {
-        formsDownload.removeChild(formsDownload.firstChild);
+    let arquivos = formsDownload.querySelector("#arquivos")
+
+    while (arquivos.firstChild) {
+        arquivos.removeChild(arquivos.firstChild);
     }
     
     for (let file of files) {
         const option = document.createElement('option');
         option.value = file;
         option.textContent = file;
-        listaArquivos.appendChild(option);
+        arquivos.appendChild(option);
     }
 
     console.log(files)
@@ -41,9 +49,27 @@ formsDownload.addEventListener('submit', async function (event) {
     let target = formsDownload.querySelector('#receber-file')
     let file = target.value
 
-    await sendFile(file)
-    // manda para o backend
+    event.target.reset();
+
+    // busca do backend
+    let blob = await getFile(file)
+    iniciarDownload(blob, file);
+
 });
+
+async function getFiles() { 
+    const url = "http://localhost:8080/files";
+
+    const response = await fetch(url);
+
+    if (!response.ok) {
+        throw new Error(`HTTP error! Status: ${response.status} (${response.statusText})`);
+    }
+
+    const data = await response.json();
+    
+    return data;
+}
 
 async function getFile(fileName) {
     let url = "http://localhost:8080/files/";
@@ -52,38 +78,13 @@ async function getFile(fileName) {
     const myHeaders = new Headers();
     myHeaders.append("Content-Type", "application/octet-stream");
 
-    try {
-        const response = await fetch(url, {
-            method: "GET",
-            headers: myHeaders 
-        });
+    const response = await fetch(url, {
+        method: "GET",
+        headers: myHeaders 
+    });
 
-        if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status} ao tentar baixar ${fileName}`);
-        }
-
-        const fileBlob = await response.blob(); 
-        
-        return fileBlob; 
-
-    } catch (error) {
-        console.error("Erro ao tentar obter o arquivo:", error);
-        throw error;
-    }
-}
-
-async function getFiles() {
-    const url = "http://localhost:8080/files";
+    return await response.blob();
     
-    const response = await fetch(url);
-    
-    if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-    }
-
-    const data = await response.json();
-    
-    return data;
 }
 
 async function sendFile(file) {
@@ -99,4 +100,28 @@ async function sendFile(file) {
     if (!response.ok) {
         throw new Error(`Upload falhou com status: ${response.status}`);
     }
+}
+
+function iniciarDownload(blob, nomeArquivo) {
+    // 1. Cria um URL temporário para o Blob
+    // Este URL é acessível apenas nesta sessão do navegador
+    const url = window.URL.createObjectURL(blob);
+    
+    // 2. Cria um elemento <a> (link de download)
+    const a = document.createElement('a');
+    a.style.display = 'none'; // Não precisa ser visível
+    a.href = url;
+    
+    // 3. Define o atributo 'download' para forçar o navegador a baixar
+    // em vez de navegar para o arquivo. O valor é o nome que o arquivo terá
+    a.download = nomeArquivo;
+    
+    // 4. Adiciona ao DOM e simula o clique para iniciar o download
+    document.body.appendChild(a);
+    a.click();
+    
+    // 5. Limpa o DOM e libera o URL do Blob
+    // É crucial chamar revokeObjectURL para liberar a memória
+    window.URL.revokeObjectURL(url);
+    document.body.removeChild(a);
 }
