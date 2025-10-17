@@ -6,13 +6,10 @@ use smol_server::Params;
 /// Retorna o item especificado pelo path
 pub async fn get_item(req: Request, mut res: Response, _params: Params) -> Result<Response, StatusCode> {
     //  formata o caminho
-    println!("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa");
     let path_buff: PathBuf = PathBuf::from(r"./".to_string() + &req.path);
     let path: &Path = Path::new(&path_buff);
 
     let body = read(path).ok().ok_or(StatusCode::NotFound)?;
-
-    println!("hhhhhhhhhhhhhhhhhhhhhhhhhhhhhhh");
     
     res.status(StatusCode::OK).body(body);
 
@@ -20,8 +17,6 @@ pub async fn get_item(req: Request, mut res: Response, _params: Params) -> Resul
         Some(ct) => Some(ct),
         None => get_content_type(&req).map(|s| s.to_string()),
     };
-
-    dbg!(&content_type);
 
     if let Some(ct) = content_type {
         res.add_header("Content-Type", ct);

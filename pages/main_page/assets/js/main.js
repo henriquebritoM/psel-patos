@@ -16,9 +16,7 @@ async function atualizaArquivosDisponiveis() {
 
     let arquivos = formsDownload.querySelector("#arquivos")
 
-    while (arquivos.firstChild) {
-        arquivos.removeChild(arquivos.firstChild);
-    }
+    arquivos.innerHTML = '';    //  remove todos elementos anteriores
     
     for (let file of files) {
         const option = document.createElement('option');
@@ -32,15 +30,20 @@ async function atualizaArquivosDisponiveis() {
 
 formsUpload.addEventListener('submit', async function (event) {
     event.preventDefault();
-
     let input_file = formsUpload.querySelector('#enviar-file')
     let file = input_file.files[0]
-    console.log(file)
 
-    // manda para o backend
-    await sendFile(file)
-
-    atualizaArquivosDisponiveis();
+    try {
+        // Envio
+        await sendFile(file);
+        alert(`Arquivo '${file.name}' enviado com sucesso!`); // Feedback para o usuário
+        
+        // Atualiza a lista após o sucesso
+        await atualizaArquivosDisponiveis(); 
+    } catch (error) {
+        console.error("Erro no upload:", error);
+        alert(`Falha ao enviar o arquivo: ${error.message}`); // Feedback para o usuário
+    }
 });
 
 formsDownload.addEventListener('submit', async function (event) {
@@ -75,13 +78,7 @@ async function getFile(fileName) {
     let url = "http://localhost:8080/files/";
     url += fileName;
 
-    const myHeaders = new Headers();
-    myHeaders.append("Content-Type", "application/octet-stream");
-
-    const response = await fetch(url, {
-        method: "GET",
-        headers: myHeaders 
-    });
+    const response = await fetch(url);
 
     return await response.blob();
     

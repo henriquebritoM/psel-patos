@@ -1,28 +1,82 @@
 # PATOS PSEL
 
-Linguagem escolhida: Rust
-Motivo: É a linguagem em que eu uso a mais tempo e me sinto mais a vontade usando 
+Linguagem escolhida: Rust <br>
+Rust é a linguagem em que eu tenho mais experiência e maior conforto para programar,
+embora não seja a mais simples para esse tipo de aplicação, possui todas as ferramentas necessárias
+para a implementação. <br>
+Pessoalmente, eu gosto mais da ergonomia e sintaxe da linguagem do que dos esteriótipos que geralmente são associados à ela,
+como "memory safety" e "💥 blazingly fast", até porque é perfeitamente possível escrever programas que não sejam nem seguros nem rápidos.
 
 # Como usar:
 
-**É necessário ter o cargo instalado**
+**É necessário ter o cargo instalado** <br>
+se não tiver, siga as [instruções de instalação](https://rust-lang.org/tools/install)
 
-- Linux: <br>
-    Na root, digite ```./start.sh``` no terminal. Digite ```cntr + c``` para parar a execução.
+- ## Setup: 
+    - ### Linux: <br>
+        1- Na root do diretório, rode o scrip com 
+        ```
+            ./start.sh
+        ``` 
+        
+        2- Para parar a execução, digite no mesmo terminal 
+        ```cntr + c```
 
-- Windows: <br>
-    Abra dois terminais, digite ```cargo run --release --bin app_server``` no primeiro e ```cargo run --release --bin web_server``` no outro. 
-    Para parar a execução, digite ```cntr + c``` em ambos terminais.
+    - ### Windows: <br>
+        1- Abra dois terminais na root do diretório
+        2- No primeiro, execute o servidor de aplicação 
+        ```
+        cargo run --release --bin app_server
+        ``` 
+        3- No segundo, execute o servidor reverse proxy
+        ```
+        cargo run --release --bin web_server
+        ```
+        4- Para parar a execução, digite, em ambos terminais
+        ```cntr + c``` 
 
-- No navegador, digite a URL ```localhost:8080```
+- ## Acessando:
+    - No navegador, digite a URL 
+    ```
+        localhost:8080
+    ```
 
-O projeto possui alguns testes básicos, que garantem (até certo ponto) o funcionamento correto. Para realizar os testes, digite ```cargo test``` na root .
+    Acredito que UI está bem didática (e só tem 4 botões), apenas siga seu coração e seja feliz >->
+
+# Sobre o projeto
+
+O projeto possui alguns testes unitários, que garantem (até certo ponto) o funcionamento correto. <br>
+Para realizar os testes, vá até a root do repositório e execute o cargo
+```
+cargo test
+``` 
 
 A maioria dos erros é tratado e resulta em um ```BadRequest``` ou ```InternalServerError```,
 mas há algumas situações onde o programa pode dar panic!() (acredito que apenas nos erros irrecuperáveis).
 
-Como todo programa em rust, há um memory safety decente, sem dangling pointers e sem data races,
+Como todo programa em rust, há um memory safety decente, acredito não ter criado dangling pointers nem data races,
 todos dados compartilhados entre threads possuem o lifetime ```'static``` e são do tipo read-only.
+
+# Funcionamento
+
+O funcionamento consiste de 3 etapas gerais:
+
+### WEB -> R PROXY
+- O client envia uma request para o proxy, dependendo da request, o proxy já envia uma response diretamente (como redirecionamento de requests GET para o path "/") <br>
+Se houver algum problema na request, ou se o endpoint nãoo for válido, o proxy também envia diretamente response com o erro correspondente
+
+### R PROXY -> APPLICATION -> R PROXY
+- O r proxy encaminha a request para o servidor de aplicação e recebe uma response <br>
+Note que não há nenhuma autenticação nesse processo, qualquer request para a porta da aplicação será respondida <br>
+Também é possivel enviar para a aplicação uma request diferente da recebida pelo proxy, mas nesse projeto isso não é utilizado 
+
+### R PROXY -> WEB
+- O r proxy envia a response recebida pela aplicação para a web
+
+#### OBSERVAÇÕES
+- Não foi estipulado um timeout para coneções, ou seja, elas só serão fechadas quando uma das partes (server/client) enviar o header ```Connection: Close```
+- A leitura de requests/responses que contenham body depende do header ```Content-Length: ```, não será lido nenhum body se este header não estiver presente
+- A porta na qual o r proxy e o app se conectam muda a cada execução, você pode conferir a porta atual em [porta](socket_addr.json)
 
 # Versionamento:
 
