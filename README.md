@@ -23,7 +23,7 @@ se não tiver, siga as [instruções de instalação](https://rust-lang.org/tool
         ```cntr + c```
 
     - ### Windows: <br>
-        1- Abra dois terminais na root do diretório
+        1- Abra dois terminais na root do diretório <br>
         2- No primeiro, execute o servidor de aplicação 
         ```
         cargo run --release --bin app_server
@@ -41,7 +41,7 @@ se não tiver, siga as [instruções de instalação](https://rust-lang.org/tool
         localhost:8080
     ```
 
-    Acredito que UI está bem didática (e só tem 4 botões), apenas siga seu coração e seja feliz >->
+    Acredito que a UI está bem didática (e só tem 4 botões), apenas siga seu coração e seja feliz >->
 
 # Sobre o projeto
 
