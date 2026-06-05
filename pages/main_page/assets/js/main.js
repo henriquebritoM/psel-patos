@@ -61,7 +61,7 @@ formsDownload.addEventListener('submit', async function (event) {
 });
 
 async function getFiles() { 
-    const url = "http://localhost:8080/files";
+    const url = "http://192.168.68.120:8080/files";
 
     const response = await fetch(url);
 
@@ -75,7 +75,7 @@ async function getFiles() {
 }
 
 async function getFile(fileName) {
-    let url = "http://localhost:8080/files/";
+    let url = "http://192.168.68.120:8080/files/";
     url += fileName;
 
     const response = await fetch(url);
@@ -85,7 +85,7 @@ async function getFile(fileName) {
 }
 
 async function sendFile(file) {
-    let url = "http://localhost:8080/files/";
+    let url = "http://192.168.68.120:8080/files/";
     url += file.name;
 
     const response = await fetch(url, {

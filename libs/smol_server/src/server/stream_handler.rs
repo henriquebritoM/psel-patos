@@ -30,6 +30,7 @@ impl ConectionHandler {
             response = match request {
                 Ok(r) => {
                     keep_alive = !r.closing();
+                    println!("{:#?}", r);
                     self.get_response(r).await
                 },
                 Err(_) => {

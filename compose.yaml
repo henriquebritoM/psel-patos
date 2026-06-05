@@ -1,0 +1,23 @@
+---
+services:
+  backend:
+    image: app_server
+    container_name: app_server
+    pull_policy: never
+    build:
+      context: .
+      dockerfile: app_server/dockerfile
+      target: runner
+    restart: always
+
+  r_proxy:
+    image: web_server
+    container_name: web_server
+    pull_policy: never
+    build:
+      context: .
+      dockerfile: web_server/dockerfile
+      target: runner
+    restart: always
+    ports:
+      - "8080:80/tcp"

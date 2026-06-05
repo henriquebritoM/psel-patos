@@ -1,0 +1,24 @@
+#   Estágio de compilação
+FROM rust:alpine3.23 AS build
+
+WORKDIR /app
+COPY ./libs/ /app/libs/
+COPY ./pages/ /app/pages/
+COPY ./files/ /app/files/
+
+COPY ./app_server/ /app/app_server/
+COPY ./Cargo.lock /app/app_server/
+
+RUN cd app_server && cargo build --release
+
+#   Estágio de Execução
+FROM alpine:3.23 AS runner
+
+WORKDIR /app
+COPY --from=build /app/files/ /app/files/
+COPY --from=build /app/pages/ /app/pages/
+COPY --from=build /app/app_server/target/release/app_server /app/
+
+CMD ["./app_server"]
+
+
